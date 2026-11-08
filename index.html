@@ -1,0 +1,759 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="돌멩이 키우기, 아무 일도 없는 버튼, 정확도 0% 운세까지. 쓸모없지만 자꾸 열게 되는 기능 8종 세트.">
+<meta property="og:title" content="쓸모없음 다모아">
+<meta property="og:description" content="돌멩이 키우기, 아무 일도 없는 버튼, 정확도 0% 운세까지. 쓸모없지만 자꾸 열게 되는 기능 8종 세트.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://kwanghyeon-cpu.github.io/uselessdamoa/">
+<meta property="og:image" content="https://kwanghyeon-cpu.github.io/uselessdamoa/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<script>
+  window.USELESS_FIREBASE = true;
+  window.USELESS_FOOTER = ' · <a href="https://kwanghyeon-cpu.github.io/uselessdamoa-privacy/" style="color:inherit">개인정보처리방침</a>';
+</script>
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+  import { getFirestore, doc, onSnapshot, setDoc, increment, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  const app = initializeApp({"apiKey":"AIzaSyBs3l3QzvhPfrusgetIvL4YbmrgV05t3Qs","authDomain":"uselessdamoa.firebaseapp.com","projectId":"uselessdamoa","storageBucket":"uselessdamoa.firebasestorage.app","messagingSenderId":"351461403017","appId":"1:351461403017:web:82a3c4a26165b130fbd958"});
+  window.FB = { db: getFirestore(app), doc, onSnapshot, setDoc, increment, serverTimestamp };
+  window.dispatchEvent(new Event('fb-ready'));
+</script>
+</head>
+<body>
+<title>쓸모없음 다모아</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one phone-width column that always fits the screen height. Each screen is one page;
+   only lists (logs, collections) scroll inside their own card. Mirrors the Android app. */
+:root{
+  --bg:#E6EAEE; --surface:#FFFFFF; --ink:#1C2128; --muted:#677180; --line:#D2D8DE;
+  --accent:#FFCF33; --accent-ink:#1C2128; --moss:#5E8C4A; --stone:#9AA0A6;
+  --f-body:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+  --f-mono:ui-monospace,"SF Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#14171B; --surface:#1F242A; --ink:#ECEFF2; --muted:#98A1AC; --line:#323941;
+  --accent:#FFCF33; --accent-ink:#1C2128; --moss:#7FB069; --stone:#7D838A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14171B; --surface:#1F242A; --ink:#ECEFF2; --muted:#98A1AC; --line:#323941;
+  --accent:#FFCF33; --accent-ink:#1C2128; --moss:#7FB069; --stone:#7D838A; color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+#app{height:100%;max-width:440px;margin:0 auto;display:flex;flex-direction:column}
+.page{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;padding-block:12px}
+.grow{flex:1;min-height:0}
+p{margin:0}
+h1,h2,h3{margin:0;font-weight:800;line-height:1.2;text-wrap:balance}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.center{text-align:center}
+.label{font-size:12px;font-weight:700;letter-spacing:.03em;color:var(--muted)}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;min-height:0}
+.card.scroll{overflow:auto}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:12px;padding:11px 16px;font-weight:800;font-size:16px;width:100%}
+.row{display:flex;gap:8px;align-items:center}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center}
+.stats.two{grid-template-columns:1fr 1fr}
+.stats b{display:block;font-family:var(--f-mono);font-size:17px;font-weight:500;font-variant-numeric:tabular-nums}
+.stats span{font-size:12px;color:var(--muted)}
+.log{list-style:none;margin:0;padding:0}
+.log li{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
+.log li:last-child{border-bottom:0}
+.log .t{flex:0 0 78px;font-size:12px;color:var(--muted);padding-top:2px;white-space:nowrap}
+canvas{display:block;width:100%}
+.cv{position:relative;flex:1;min-height:0}
+.cv canvas{position:absolute;inset:0;width:100%;height:100%}
+
+/* top bar */
+.bar{display:flex;align-items:center;gap:10px}
+.back{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:transparent;font-size:20px;line-height:1}
+.bar h2{font-size:22px}
+
+/* home */
+.brand .x{background:var(--accent);color:var(--accent-ink);padding:0 6px;border-radius:4px}
+.brand h1{font-size:30px;font-weight:900}
+.wasted{display:flex;justify-content:space-between;align-items:center;border-top:2px solid var(--ink);border-bottom:1px solid var(--line);padding:6px 2px}
+.wasted .mono{font-size:20px}
+.grid{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(4,1fr);gap:10px}
+.tile{display:flex;flex-direction:column;gap:4px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;min-height:0;overflow:hidden}
+.tile .hd{display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;line-height:1.2}
+.ico{flex:0 0 32px;width:32px;height:32px;border-radius:10px;background:var(--bg);display:grid;place-items:center;font-size:18px}
+.tile p{font-size:12px;color:var(--muted);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tile .tag{margin-top:auto;font-size:12px;color:var(--muted)}
+.wide{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px 12px;text-align:left}
+.wide b{font-size:15px}
+.foot{font-size:12px;color:var(--muted);text-align:center}
+
+/* screens */
+.speech{min-height:1.5em;text-align:center;color:var(--muted);font-size:14px}
+.wiggle{animation:wig .5s}
+@keyframes wig{20%{transform:rotate(-2deg)}40%{transform:rotate(2deg)}60%{transform:rotate(-1deg)}80%{transform:rotate(.5deg)}}
+.bigbtn{flex:1;min-height:0;display:grid;place-items:center;position:relative}
+.bigbtn button{position:relative;border:0;background:none;padding:0;border-radius:50%;touch-action:manipulation}
+.bigbtn .cap{position:absolute;left:0;right:0;font-weight:900;color:rgba(255,255,255,.92);text-shadow:0 3px 4px rgba(80,10,4,.6);pointer-events:none}
+.ticket .stamp{float:right;border:2px solid var(--moss);color:var(--moss);font-weight:800;padding:0 8px;border-radius:6px;transform:rotate(8deg);font-size:13px}
+.ticket .big{font-size:20px;font-weight:800;line-height:1.35}
+.ticket hr{border:0;border-top:2px solid var(--ink);margin:4px 0}
+.namebox{display:flex;gap:8px}
+.namebox input{flex:1;min-width:0;font:inherit;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+.namebox .btn{width:auto;flex:0 0 auto}
+.gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.gallery figure{margin:0;min-width:0}
+.gallery canvas{aspect-ratio:4/3;border-radius:8px}
+.gallery figcaption{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stage{flex:1;min-height:80px;position:relative;display:grid;place-items:center;overflow:hidden}
+.puff{position:absolute;font-size:34px;font-weight:800;color:var(--muted);animation:puff 2.4s ease-out forwards}
+@keyframes puff{0%{opacity:0;transform:translate(-40px,20px) scale(.6)}20%{opacity:1}100%{opacity:0;transform:translate(60px,-60px) scale(1.6)}}
+.dex{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.dex div{border:1px solid var(--line);border-radius:10px;padding:6px 4px;font-size:13px;text-align:center;min-height:40px;display:grid;place-items:center}
+.dex div.no{color:var(--muted)}
+.dex div.rare{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 20%,transparent)}
+.scene{flex:1;min-height:0;border-radius:12px;overflow:hidden}
+.ach{display:flex;gap:12px;align-items:center;padding:6px 0}
+.ach .m{flex:0 0 40px;height:40px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;color:var(--muted)}
+.ach .m.on{background:var(--accent);border-color:var(--accent)}
+.ach b{display:block;font-size:15px}
+.ach span{font-size:13px;color:var(--muted)}
+.overlay{position:fixed;inset:0;background:var(--bg);z-index:20;display:grid;place-items:center;text-align:center;padding:32px max(16px,env(safe-area-inset-left,0px))}
+.overlay .mono{font-size:48px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:calc(100% - 32px);text-align:center;z-index:30}
+.toast.on{opacity:1}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div id="app"></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+/* ================= utils ================= */
+const $ = s => document.querySelector(s);
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem('ud_'+k); return v==null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem('ud_'+k, JSON.stringify(v)); }catch(e){} }
+};
+function rng(seed){ let a = seed>>>0; return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function hash(str){ let h=2166136261; for(const c of String(str)){ h^=c.charCodeAt(0); h=Math.imul(h,16777619); } return h>>>0; }
+const pick = (r, a) => a[Math.floor(r()*a.length)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const fmt = n => Number(n).toLocaleString('ko-KR');
+function stamp(t){ const d=new Date(t); return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+function dateKey(t=Date.now()){ const d=new Date(t); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function fmtDur(ms){ const s=Math.floor(ms/1000); return `${pad(Math.floor(s/3600))}:${pad(Math.floor(s/60)%60)}:${pad(s%60)}`; }
+let toastT;
+function toast(msg){ const el=$('#toast'); el.textContent=msg; el.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('on'),2400); }
+let install = store.get('install', null);
+if(!install){ install = Math.floor(Math.random()*1e9); store.set('install', install); }
+function fit(c){ const r=c.getBoundingClientRect(), d=window.devicePixelRatio||1; c.width=Math.max(1,Math.round(r.width*d)); c.height=Math.max(1,Math.round(r.height*d)); return c.getContext('2d'); }
+function circle(ctx,x,y,r,fill){ ctx.beginPath(); ctx.arc(x,y,Math.max(0,r),0,Math.PI*2); ctx.fillStyle=fill; ctx.fill(); }
+function radial(ctx,x0,y0,r0,x1,y1,r1,stops){ const g=ctx.createRadialGradient(x0,y0,r0,x1,y1,r1); stops.forEach(([o,c])=>g.addColorStop(o,c)); return g; }
+function linear(ctx,x0,y0,x1,y1,stops){ const g=ctx.createLinearGradient(x0,y0,x1,y1); stops.forEach(([o,c])=>g.addColorStop(o,c)); return g; }
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+/* ================= achievements ================= */
+const ACH = [
+  ['first_visit','쓸모없음 입문','처음 열었습니다.'],
+  ['visits_10','단골','10번 방문했습니다.'],
+  ['wasted_1h','한 시간 증발','여기서 1시간을 보냈습니다.'],
+  ['rock_pet_100','돌에게 진심','돌을 100번 쓰다듬었습니다.'],
+  ['rock_day_7','일주일째 돌','돌과 7일을 함께했습니다.'],
+  ['button_100','아무 일도 없었다 ×100','버튼을 100번 눌렀습니다.'],
+  ['button_milestone','역사의 현장','전 세계 이정표 숫자를 아마도 직접 눌렀습니다.',1],
+  ['fortune_7','운세 수집가','운세를 7장 모았습니다.'],
+  ['cloud_rare','희귀 구름 목격','희귀한 구름을 봤습니다.',1],
+  ['cloud_10','구름 부자','구름을 10개 모았습니다.'],
+  ['sigh_3am','새벽 세 시의 한숨','새벽 2~4시에 한숨을 맡겼습니다.',1],
+  ['sigh_all','한숨 박사','한숨 12종을 모두 모았습니다.'],
+  ['nothing_5m','5분간 무(無)','5분 동안 아무것도 안 했습니다.'],
+  ['nothing_1h','명상은 아닙니다','1시간 동안 아무것도 안 했습니다.'],
+  ['thumb_100m','손가락 마라토너','손가락이 이 페이지에서 100m를 이동했습니다.'],
+  ['cricket_night','밤의 청중','밤에 귀뚜라미 울음을 들었습니다.'],
+  ['cricket_day','깨우지 마세요','낮에 자는 귀뚜라미를 5번 찾아갔습니다.',1],
+];
+function unlocked(){ return new Set(store.get('ach', [])); }
+function unlock(id){ const s=unlocked(); if(s.has(id)) return; const a=ACH.find(x=>x[0]===id); if(!a) return; s.add(id); store.set('ach',[...s]); toast('🏅 업적 달성: '+a[1]); }
+function unlockIf(c,id){ if(c) unlock(id); }
+
+/* ================= time spent + measurement ================= */
+let wasted = store.get('wasted', 0), lastTick = Date.now();
+const m = store.get('measure', {day:'', cm:0, taps:0, ms:0, total:0});
+function rollDay(){ const k=dateKey(); if(m.day!==k){ m.day=k; m.cm=0; m.taps=0; m.ms=0; } }
+rollDay();
+setInterval(()=>{
+  const now=Date.now(), dt=Math.min(now-lastTick,2000); lastTick=now;
+  if(document.visibilityState==='visible'){ wasted+=dt; rollDay(); m.ms+=dt; }
+  store.set('wasted', wasted); store.set('measure', m);
+  unlockIf(wasted>=3600e3,'wasted_1h'); unlockIf(m.total>=10000,'thumb_100m');
+  if(tick) tick();
+}, 1000);
+// Only touches on this page count. CSS pixels are 1/96 inch.
+let lastPt = null;
+document.addEventListener('pointerdown', e => { rollDay(); m.taps++; lastPt={x:e.clientX,y:e.clientY}; }, true);
+document.addEventListener('pointermove', e => { if(!lastPt || !e.buttons && e.pointerType==='mouse') { lastPt = e.buttons ? {x:e.clientX,y:e.clientY} : null; return; } const d=Math.hypot(e.clientX-lastPt.x, e.clientY-lastPt.y); m.cm += d/96*2.54; m.total += d/96*2.54; lastPt={x:e.clientX,y:e.clientY}; }, true);
+document.addEventListener('pointerup', () => { lastPt=null; }, true);
+
+/* ================= shared numbers ================= */
+// The worldwide press count and the do-nothing world record. Two backends:
+// - public web page (GitHub Pages, built by build-pages.mjs): the Android app's Firebase, so web and app count together;
+// - inside Claude: the artifact's own db (a Claude page can't reach other servers).
+// Both hand back numbers only, never who pressed.
+const Shared = window.USELESS_FIREBASE ? firebaseShared() : artifactShared();
+function artifactShared(){
+  let db=null, me=null;
+  const ready = (async () => {
+    try{ const d=await window.claude?.use?.('db'), u=await window.claude?.use?.('user'); if(!d||!u) return false; me=await u.id(); db=d; return true; }
+    catch(e){ return false; }
+  })();
+  return {
+    ready, countLabel:'웹 버전 실시간 집계', bestLabel:'세계 기록 (웹)',
+    // total = sum of everyone's own counter doc (mine included)
+    watchCount(cb, err){ let first=true; return db.collection('presses').limit(1000).onSnapshot(snap => {
+      let t=0, moved=false; snap.docs.forEach(d => { t += Number(d.data().count)||0; });
+      if(!first) snap.docChanges().forEach(ch => { if(ch.doc.id!==me) moved=true; });
+      first=false; cb(t, moved, true); }, err); },
+    add(n, mineTotal){ return db.collection('presses').doc(me).set({count:mineTotal, at:Date.now()}); },
+    watchBest(cb){ return db.collection('nothing').limit(1000).onSnapshot(s => { let mx=0; s.docs.forEach(d => { mx=Math.max(mx, Number(d.data().best)||0); }); cb(mx); }, ()=>{}); },
+    submitBest(secs){ return db.collection('nothing').doc(me).set({best:secs, at:Date.now()}); },
+  };
+}
+function firebaseShared(){
+  const ready = new Promise(res => {
+    if(window.FB) return res(true);
+    window.addEventListener('fb-ready', () => res(true), {once:true});
+    setTimeout(() => res(!!window.FB), 10000);
+  });
+  const ref = id => window.FB.doc(window.FB.db, 'counters', id);
+  let lastServer=null, sent=0;
+  return {
+    ready, countLabel:'앱과 함께 세는 전 세계 실시간 집계', bestLabel:'세계 기록',
+    watchCount(cb, err){ const F=window.FB; return F.onSnapshot(ref('button'), {includeMetadataChanges:true}, s => {
+      const c=Number(s.get('count'))||0, online=!s.metadata.fromCache; let moved=false;
+      if(online && !s.metadata.hasPendingWrites){ if(lastServer!=null && c-lastServer>sent) moved=true; lastServer=c; sent=0; }
+      cb(c, moved, online); }, err); },
+    // Atomic increments of at most 50 each (firestore.rules allows no more).
+    async add(n){ const F=window.FB; while(n>0){ const k=Math.min(50,n); n-=k; sent+=k; await F.setDoc(ref('button'), {count:F.increment(k), at:F.serverTimestamp()}, {merge:true}); } },
+    watchBest(cb){ const F=window.FB; return F.onSnapshot(ref('nothing'), s => cb(Number(s.get('best'))||0), ()=>{}); },
+    submitBest(secs){ const F=window.FB; return F.setDoc(ref('nothing'), {best:secs, at:F.serverTimestamp()}); },
+  };
+}
+
+/* ================= routing ================= */
+const APPS = [
+  ['rock','🪨','돌멩이 키우기','아무것도 안 하는 돌을 돌봅니다. 돌은 모릅니다.'],
+  ['button','🔴','아무 일도 없는 버튼','누르면 아무 일도 안 일어납니다. 진짜로.'],
+  ['fortune','🔮','쓸모없는 운세','하루 한 장. 정확도 0%를 보장합니다.'],
+  ['cloud','☁️','구름 수집','10분마다 바뀌는 구름. 놓치면 끝입니다.'],
+  ['sigh','😮‍💨','대신 한숨','당신 대신 한숨을 쉬어 드립니다.'],
+  ['cricket','🦗','귀뚜라미 키우기','밤에만 깨어나 웁니다. 낮에는 잡니다.'],
+  ['nothing','⏳','아무것도 안 하기','만지지 않고 버티는 시간을 잽니다.'],
+  ['measure','📏','쓸데없는 측정','오늘 손가락이 움직인 거리 같은 것.'],
+];
+const screens = {home, rock, button, fortune, cloud, sigh, cricket, nothing, measure, achievements};
+let cleanup=null, tick=null;
+function route(){
+  if(cleanup){ cleanup(); cleanup=null; } tick=null;
+  const id = location.hash.slice(1);
+  const fn = screens[id] && id!=='home' ? screens[id] : home;
+  const root = $('#app'); root.innerHTML='';
+  cleanup = fn(root) || null;
+}
+window.addEventListener('hashchange', route);
+window.addEventListener('resize', () => { if(redraw) redraw(); });
+let redraw = null;
+function bar(title){ return `<div class="bar"><button class="back" id="backBtn" type="button" aria-label="다모아로 돌아가기">←</button><h2>${title}</h2></div>`; }
+function wireBack(){ $('#backBtn').onclick = () => { history.length > 1 && location.hash ? (location.hash='') : route(); }; }
+
+/* ================= home ================= */
+function tagFor(id){
+  if(id==='rock'){ const r=store.get('rock',null); return r ? `D+${Math.floor((Date.now()-r.born)/864e5)}` : '입양 대기 중'; }
+  if(id==='button') return `누른 횟수 ${fmt(store.get('mine',0))}`;
+  if(id==='fortune') return store.get('fortunes',{})[dateKey()] ? '오늘 것 받음' : '오늘 것 안 받음';
+  if(id==='cloud') return `수집 ${store.get('clouds',[]).length}개`;
+  if(id==='sigh') return `도감 ${store.get('sighs',[]).length}/${SIGHS.length}`;
+  if(id==='cricket') return cricketAwake() ? '깨어 있음' : '자는 중';
+  if(id==='nothing') return `최고 ${fmtDur(store.get('nothingBest',0)*1000)}`;
+  if(id==='measure') return `오늘 탭 ${fmt(m.taps)}번`;
+  return '';
+}
+function home(root){
+  redraw=null;
+  const visits = store.get('visits',0)+1; store.set('visits',visits);
+  unlock('first_visit'); unlockIf(visits>=10,'visits_10');
+  root.innerHTML = `<div class="page">
+    <div class="brand"><span class="label">쓸모없는 기능 8종 세트</span><h1>쓸모없음 <span class="x">다모아</span></h1></div>
+    <div class="wasted"><span class="small muted">여기서 쓸모없이 보낸 시간</span><span class="mono" id="wastedNum">${fmtDur(wasted)}</span></div>
+    <div class="grid">${APPS.map(([id,ico,name,desc])=>`<button class="tile" data-go="${id}" type="button"><span class="hd"><span class="ico" aria-hidden="true">${ico}</span>${name}</span><p>${desc}</p><span class="tag">${tagFor(id)}</span></button>`).join('')}</div>
+    <button class="wide" data-go="achievements" type="button"><span class="ico" aria-hidden="true">🏅</span><b>쓸모없는 업적</b><span class="small muted">${unlocked().size} / ${ACH.length} 달성 · 보상은 없습니다.</span></button>
+    <p class="foot">${visits}번째 방문 · 웹 버전${window.USELESS_FOOTER || ''}</p>
+  </div>`;
+  root.querySelectorAll('[data-go]').forEach(b => b.onclick = () => location.hash = b.dataset.go);
+  tick = () => { const el=$('#wastedNum'); if(el) el.textContent=fmtDur(wasted); };
+}
+
+/* ================= 1. rock ================= */
+const ROCK_EVENTS = [
+  r => `이끼가 ${(r()*0.04+0.01).toFixed(3)}mm 자랐습니다.`,
+  r => `개미 ${Math.floor(r()*7)+2}마리가 지나갔습니다. 돌은 신경 쓰지 않았습니다.`,
+  r => `돌이 ${(r()*2.4+0.1).toFixed(1)}mm 이동했습니다. 아마 바람 때문입니다.`,
+  r => `돌의 온도가 ${(r()*3+0.5).toFixed(1)}℃ 올랐다가 다시 내려갔습니다.`,
+  r => `돌 위에 먼지가 ${Math.floor(r()*400)+30}톨 앉았습니다.`,
+  r => `근처를 지나던 비둘기가 돌을 ${Math.floor(r()*3)+1}초간 쳐다봤습니다.`,
+  r => `돌이 ${Math.floor(r()*900)+100}년 뒤의 일을 생각한 것 같습니다. 확인할 방법은 없습니다.`,
+  r => `작은 거미가 돌 옆에 집을 지으려다 포기했습니다.`,
+  r => `돌 표면에서 모래 ${Math.floor(r()*3)+1}알이 떨어져 나갔습니다. 돌이 아주 조금 작아졌습니다.`,
+  r => `돌은 오늘도 돌이었습니다.`,
+  r => `달팽이가 돌 위를 ${(r()*4+1).toFixed(1)}cm 기어가다 내려갔습니다.`,
+  r => `돌 그림자가 ${Math.floor(r()*40)+10}도 회전했습니다. 해가 움직였기 때문입니다.`,
+];
+const ROCK_REPLIES = ['돌은 아무 반응이 없습니다.','…','돌이 조금 따뜻해진 것 같습니다. 당신 손 때문입니다.','돌은 쓰다듬어진 사실을 모릅니다.','돌은 여전히 돌입니다.','이 돌은 당신을 기억하지 않습니다.','아주 미세하게 기분이 좋아 보입니다. 착각입니다.'];
+const ROCK_NAMES = ['단단이','회색이','무념이','돌돌이','묵묵이','차돌이','뭉툭이'];
+function rock(root){
+  let s = store.get('rock', null); const now = Date.now();
+  if(!s){ s = {born:now, seen:now, pets:0, name:pick(rng(install), ROCK_NAMES), seed:install, log:[{t:now, m:'돌을 입양했습니다. 돌은 아직 모릅니다.'}]}; }
+  else {
+    const gap = now - s.seen;
+    if(gap > 60000){ const r=rng(hash(s.seed+':'+Math.floor(now/60000))); const n=Math.min(5, 1+Math.floor(gap/(2*3600e3)));
+      const add=[]; for(let i=1;i<=n;i++) add.push({t:s.seen+gap*i/(n+1), m:pick(r,ROCK_EVENTS)(r)}); s.log=add.reverse().concat(s.log).slice(0,40); }
+    s.seen = now;
+  }
+  store.set('rock', s);
+  const days = Math.floor((now-s.born)/864e5), moss = Math.min(1,(now-s.born)/(30*864e5));
+  unlockIf(days>=7,'rock_day_7');
+  root.innerHTML = `<div class="page">${bar('돌멩이 키우기')}
+    <div class="card" style="flex:1.3">
+      <div class="cv"><canvas id="rockC" aria-label="${esc(s.name)}라는 돌"></canvas></div>
+      <p class="speech" id="speech">${esc(s.name)}가 여기 있습니다.</p>
+      <div class="stats"><div><b>D+${days}</b><span>함께한 날</span></div><div><b id="petN">${s.pets}</b><span>쓰다듬은 횟수</span></div><div><b>${(moss*100).toFixed(1)}%</b><span>이끼 덮임</span></div></div>
+      <button class="btn" id="petBtn" type="button">쓰다듬기</button>
+    </div>
+    <div class="card scroll" style="flex:1"><span class="label">${esc(s.name)}의 일지 · 자리를 비운 사이</span>
+      <ul class="log">${s.log.slice(0,15).map(e=>`<li><span class="t">${stamp(e.t)}</span><span>${esc(e.m)}</span></li>`).join('')}</ul></div>
+  </div>`;
+  wireBack();
+  redraw = () => { const c=$('#rockC'); const ctx=fit(c); drawRock(ctx,c.width,c.height,s.seed,moss); };
+  redraw();
+  $('#petBtn').onclick = () => {
+    s.pets++; store.set('rock', s); $('#petN').textContent=s.pets; unlockIf(s.pets>=100,'rock_pet_100');
+    $('#speech').textContent = ROCK_REPLIES[Math.floor(Math.random()*ROCK_REPLIES.length)];
+    const c=$('#rockC'); c.classList.remove('wiggle'); void c.offsetWidth; c.classList.add('wiggle');
+  };
+}
+function drawRock(ctx,w,h,seed,moss){
+  const r=rng(seed), k=Math.min(w/480,h/360);
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='rgba(0,0,0,.12)'; ctx.beginPath(); ctx.ellipse(w/2,h*0.5+118*k,150*k,22*k,0,0,Math.PI*2); ctx.fill();
+  const N=14, pts=[];
+  for(let i=0;i<N;i++){ const a=i/N*Math.PI*2, rad=1+(r()-0.5)*0.22, lower=a>0&&a<Math.PI; pts.push([w/2+Math.cos(a)*150*k*rad, h*0.47+Math.sin(a)*(lower?95:110)*k*rad]); }
+  const mid=(p,q)=>[(p[0]+q[0])/2,(p[1]+q[1])/2];
+  ctx.beginPath(); const st=mid(pts[0],pts[1]); ctx.moveTo(st[0],st[1]);
+  for(let i=0;i<N;i++){ const q=pts[(i+1)%N], mm=mid(q,pts[(i+2)%N]); ctx.quadraticCurveTo(q[0],q[1],mm[0],mm[1]); }
+  ctx.closePath();
+  ctx.fillStyle=radial(ctx,w*0.42,h*0.34,10*k,w/2,h*0.47,200*k,[[0,'#D5D8DB'],[0.5,css('--stone')||'#9AA0A6'],[1,'#4E5359']]); ctx.fill();
+  ctx.save(); ctx.clip();
+  for(let i=0;i<60;i++) circle(ctx,r()*w,r()*h,(r()*4+1)*k,`rgba(0,0,0,${r()*0.12})`);
+  const mossC=css('--moss')||'#5E8C4A', n=Math.floor(moss*220)+4;
+  for(let i=0;i<n;i++){ ctx.globalAlpha=0.5+r()*0.4; circle(ctx,w/2+(r()-0.5)*300*k, h*0.47-100*k+r()*120*k*(0.4+moss),(r()*6+2)*k,mossC); }
+  ctx.restore(); ctx.globalAlpha=1;
+}
+
+/* ================= 2. button ================= */
+const NOTHING = ['아무 일도 일어나지 않았습니다.','역시 아무 일도 없습니다.','방금 누른 것은 기록되었습니다. 그게 다입니다.','버튼이 눌렸습니다. 버튼도 압니다.','세상은 그대로입니다.','다음 번엔 뭔가 일어날 수도… 없습니다.','축하합니다. 아무것도 얻지 못했습니다.'];
+const SPECIAL = [77,100,123,500,777,1234,7777,12345,77777,123456,777777];
+const isMilestone = n => n>0 && (SPECIAL.includes(n) || n%1000===0);
+const nextMilestone = n => Math.min((Math.floor(n/1000)+1)*1000, ...SPECIAL.filter(x=>x>n), Infinity);
+function button(root){
+  let mine = store.get('mine',0), mineWorld = store.get('mineWorld',0);
+  const today = dateKey(); let todayN = store.get('mineDay','')===today ? store.get('mineToday',0) : 0;
+  root.innerHTML = `<div class="page">${bar('아무 일도 없는 버튼')}
+    <div class="card grow">
+      <div class="center"><span class="label">전 세계가 누른 횟수</span><div class="mono" style="font-size:34px" id="globalN">…</div>
+        <p class="small muted" id="note">세계 집계에 연결하는 중…</p><p class="small" id="nextMs" style="margin-top:4px"></p></div>
+      <div class="bigbtn"><button id="bigBtn" type="button" aria-label="누르기"><canvas id="btnC"></canvas><span class="cap" id="cap">누르기</span></button></div>
+      <p class="speech" id="msg">이 버튼은 아무것도 하지 않습니다.</p>
+      <div class="stats"><div><b id="mineN">${fmt(mine)}</b><span>내가 누른 횟수</span></div><div><b id="todayN">${todayN}</b><span>오늘 누른 횟수</span></div><div><b id="shareN">–</b><span>세계 지분</span></div></div>
+    </div></div>`;
+  wireBack();
+  // base: the shared total as last reported; unsent: presses waiting for the next batched write.
+  let base=null, unsent=0, writing=false, canWrite=true, alive=true, unsub=null, timer, press=0, size=0, solo=false, ok=false;
+  // Without the shared store, count alone instead of showing "…" forever.
+  const shown = () => base!=null ? base + unsent : solo ? mine : null;
+  function render(){
+    const w = shown();
+    $('#globalN').textContent = w==null ? '…' : fmt(w);
+    $('#nextMs').textContent = w==null ? '' : `다음 이정표 ${fmt(nextMilestone(w))}까지 ${fmt(nextMilestone(w)-w)}번`;
+    $('#mineN').textContent = fmt(mine); $('#todayN').textContent = todayN;
+    $('#shareN').textContent = w ? (Math.min(100, mineWorld*100/w)).toFixed(mineWorld*100/w>=10?0:2)+'%' : '–';
+  }
+  function paint(){
+    const c=$('#btnC'); if(!c) return;
+    const area=c.parentElement.parentElement.getBoundingClientRect();
+    size = Math.max(80, Math.min(240, area.height-8, area.width));
+    c.style.width=size+'px'; c.style.height=size+'px';
+    const ctx=fit(c); drawArcadeButton(ctx,c.width,press);
+    const cap=$('#cap'); cap.style.fontSize=(size*0.12)+'px'; cap.style.top=`calc(50% - ${size*0.08}px + ${size*0.04*press}px)`;
+  }
+  redraw = paint; paint(); render();
+  const note = t => { const el=$('#note'); if(el) el.textContent=t; };
+  const loadT = setTimeout(()=>{ if(alive && base==null){ solo=true; render(); note('세계 집계에 연결하지 못했습니다. 혼자 누르는 중입니다.'); } }, 10000);
+  Shared.ready.then(r => {
+    if(!alive) return;
+    ok = r;
+    if(!ok){ solo=true; render(); note('세계 집계 없이 혼자 누르는 중입니다.'); return; }
+    unsub = Shared.watchCount((total, moved, online) => {
+      base = total; if(!alive) return; render();
+      if(online) note(Shared.countLabel);
+      if(moved) toast('방금 어딘가의 누군가도 눌렀습니다.');
+    }, () => note('세계 집계가 끊겼습니다. 혼자 누르는 중입니다.'));
+  });
+  async function flush(){
+    if(!ok || !canWrite || writing || !unsent) return;
+    writing=true; const n=unsent; unsent=0;
+    try{ await Shared.add(n, mine); }
+    catch(e){ canWrite=false; note('집계에 쓰지 못했습니다. 내 횟수는 이 기기에만 남습니다.'); }
+    writing=false; if(unsent) flush();
+  }
+  const btn=$('#bigBtn');
+  const setPress = v => { press=v; paint(); };
+  btn.addEventListener('pointerdown', ()=>setPress(1));
+  ['pointerup','pointerleave','pointercancel'].forEach(t=>btn.addEventListener(t, ()=>setPress(0)));
+  btn.onclick = () => {
+    mine++; todayN++; mineWorld++; unsent++;
+    store.set('mine',mine); store.set('mineWorld',mineWorld); store.set('mineDay',today); store.set('mineToday',todayN);
+    if(navigator.vibrate) try{ navigator.vibrate(15); }catch(e){}
+    const w = shown();
+    let msg;
+    if(w!=null && isMilestone(w)){ unlock('button_milestone'); msg=`전 세계 ${fmt(w)}번째 누름이 방금 일어났습니다. 아마도 당신입니다. 역시 아무 일도 없습니다.`; }
+    else if(mine%100===0) msg=`${mine}번째입니다. 그래도 아무 일도 없습니다.`;
+    else msg=NOTHING[Math.floor(Math.random()*NOTHING.length)];
+    $('#msg').textContent=msg; unlockIf(mine>=100,'button_100'); render();
+    clearTimeout(timer); timer=setTimeout(flush, 800);
+  };
+  return () => { alive=false; clearTimeout(loadT); clearTimeout(timer); flush(); if(unsub) unsub(); };
+}
+/* Arcade push button seen slightly from above: metal bezel, dark housing, glossy red cap. */
+function drawArcadeButton(ctx,S,press){
+  ctx.clearRect(0,0,S,S);
+  const r=S/2/1.05, cx=S/2, cy=S/2;
+  for(let i=6;i>=1;i--) circle(ctx,cx,cy+r*0.06,r*(0.96+i*0.012),'rgba(0,0,0,.05)');
+  let bez;
+  if(ctx.createConicGradient){ bez=ctx.createConicGradient(0,cx,cy); [['#8E959C',0],['#E9ECEF',1/6],['#6A7178',2/6],['#D3D7DB',3/6],['#5B6168',4/6],['#B9BEC3',5/6],['#8E959C',1]].forEach(([c,o])=>bez.addColorStop(o,c)); }
+  else bez=linear(ctx,0,0,S,S,[[0,'#E9ECEF'],[1,'#5B6168']]);
+  circle(ctx,cx,cy,r*0.97,bez);
+  circle(ctx,cx,cy,r*0.97,linear(ctx,0,cy-r,0,cy,[[0,'rgba(255,255,255,.35)'],[1,'rgba(255,255,255,0)']]));
+  circle(ctx,cx,cy,r*0.85,radial(ctx,cx,cy+r*0.05,0,cx,cy+r*0.05,r*0.86,[[0,'#3A3A3D'],[1,'#111113']]));
+  const rc=r*0.74, bottom=cy+r*0.07, top=cy-r*0.07*(1-press)+r*0.035*press;
+  const skirt=linear(ctx,cx-rc,0,cx+rc,0,[[0,'#6E1208'],[0.33,'#A01E10'],[0.66,'#7A150A'],[1,'#4A0B05']]);
+  circle(ctx,cx,bottom,rc,skirt); ctx.fillStyle=skirt; ctx.fillRect(cx-rc,top,rc*2,bottom-top);
+  circle(ctx,cx,top,rc,radial(ctx,cx-rc*0.3,top-rc*0.35,0,cx-rc*0.3,top-rc*0.35,rc*1.5,[[0,'#FF8070'],[0.5,'#E5392A'],[1,'#B21E10']]));
+  circle(ctx,cx,top,rc,radial(ctx,cx,top,0,cx,top,rc,[[0.75,'rgba(64,0,0,0)'],[1,'rgba(64,0,0,.33)']]));
+  ctx.save(); ctx.translate(cx-rc*0.22,top-rc*0.42); ctx.rotate(-25*Math.PI/180);
+  ctx.beginPath(); ctx.ellipse(0,0,rc*0.5,rc*0.25,0,0,Math.PI*2);
+  ctx.fillStyle=radial(ctx,0,0,0,0,0,rc*0.5,[[0,`rgba(255,255,255,${0.6-0.25*press})`],[1,'rgba(255,255,255,0)']]); ctx.fill(); ctx.restore();
+  ctx.beginPath(); ctx.arc(cx,top,rc*0.97,20*Math.PI/180,160*Math.PI/180); ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.lineWidth=rc*0.03; ctx.stroke();
+}
+
+/* ================= 3. fortune ================= */
+const F_ITEMS=['냉장고','왼쪽 양말','천장','리모컨','숟가락','신발 끈','창문','물컵','휴대폰 충전기','편의점 간판'];
+const F_ACTS=['쳐다볼','떠올릴','괜히 만질','두 번 확인할','속으로 칭찬할','찾아 헤맬'];
+const F_LUCKY=[['행운의 숫자',r=>(r()*1000).toFixed(2)],['행운의 방향',r=>pick(r,['북북서쪽 약간 위','등 뒤','오른쪽 45도','바닥 쪽','어제 앉았던 자리 방향'])],['행운의 소리',r=>pick(r,['전자레인지 띵','지퍼 올리는 소리','먼 곳의 오토바이','냉장고 웅웅','종이 넘기는 소리'])],['행운의 모양',r=>pick(r,['약간 찌그러진 동그라미','삼각김밥','구름 비슷한 것','네모인데 모서리가 둥근 것'])]];
+const F_WARN=['오늘은 계단을 한 칸씩 오르는 것이 좋습니다. 원래 그렇게 오릅니다.','정오 무렵 하품이 나올 수 있습니다. 막을 방법은 없습니다.','누군가 당신 이름을 부를 수도, 안 부를 수도 있습니다.','오늘 마시는 물은 대체로 물맛일 것입니다.','오후에 조금 배고플 예정입니다.','양말 한 짝의 행방이 묘연해질 수 있습니다.'];
+const FACTS=['문어는 심장이 3개입니다.','식물학적으로 바나나는 베리(장과)이고, 딸기는 아닙니다.','웜뱃은 정육면체 모양의 똥을 쌉니다.','플라밍고가 분홍색인 이유는 먹이 속 색소 때문입니다.','금성은 하루(자전)가 1년(공전)보다 깁니다.','에펠탑은 여름에 열팽창으로 몇 cm 더 높아집니다.','나무늘보는 숨을 40분 가까이 참을 수 있습니다.','해달은 잠잘 때 떠내려가지 않도록 서로 손을 잡기도 합니다.','꿀은 제대로 보관하면 아주 오랫동안 상하지 않습니다.'];
+function makeFortune(key){ const r=rng(hash(key+':'+install)); const item=pick(r,F_ITEMS), act=pick(r,F_ACTS), times=Math.floor(r()*9)+2, p=(r()*60+20).toFixed(1); const [lk,lf]=pick(r,F_LUCKY);
+  return {main:`당신은 오늘 ${item}을(를) ${times}번 ${act} 확률이 ${p}%입니다.`, lucky:`${lk}: ${lf(r)}`, warn:pick(r,F_WARN), fact:pick(r,FACTS)}; }
+function fortune(root){
+  redraw=null;
+  const key=dateKey(), got=store.get('fortunes',{});
+  const draw = () => {
+    const has=!!got[key], f=has?makeFortune(key):null, past=Object.keys(got).filter(k=>k!==key).sort().reverse();
+    root.innerHTML = `<div class="page">${bar('쓸모없는 운세')}
+      ${has ? `<div class="card ticket"><div><span class="stamp">정확도 0%</span><span class="small muted">${key} · 오늘의 운세</span></div>
+        <p class="big">${esc(f.main)}</p><p>${esc(f.lucky)}</p><p class="muted">${esc(f.warn)}</p><hr><span class="label">오늘의 쓸모없는 사실</span><p class="small">${esc(f.fact)}</p></div>
+        <p class="small muted center">다음 운세까지 <span class="mono" id="untilNext"></span></p>`
+      : `<div class="card center" style="padding:24px 14px"><div style="font-size:48px" aria-hidden="true">🔮</div><p style="margin:10px 0">오늘의 운세가 봉인되어 있습니다.<br>하루에 한 장만 뽑을 수 있습니다.</p><button class="btn" id="drawBtn" type="button">운세 뽑기</button></div>`}
+      <div class="card scroll grow"><span class="label">운세 도감 · ${Object.keys(got).length}장 모음</span>
+        ${past.length ? `<ul class="log">${past.slice(0,30).map(k=>`<li><span class="t">${k.slice(5)}</span><span>${esc(makeFortune(k).main)}</span></li>`).join('')}</ul>` : `<p class="small muted">지난 운세가 여기 쌓입니다. 내일 다시 오세요.</p>`}</div></div>`;
+    wireBack();
+    if(!has) $('#drawBtn').onclick = () => { got[key]=Date.now(); store.set('fortunes',got); unlockIf(Object.keys(got).length>=7,'fortune_7'); draw(); };
+  };
+  draw();
+  tick = () => { const el=$('#untilNext'); if(!el) return; const n=new Date(); el.textContent=fmtDur(new Date(n.getFullYear(),n.getMonth(),n.getDate()+1)-n); };
+  tick();
+}
+
+/* ================= 4. cloud ================= */
+const WINDOW=10*60*1000;
+const SHAPES=['양','고래','식빵','토끼','솜사탕','슬리퍼','만두','강아지','용','감자','유령','베개'];
+const cloudSeed = t => hash('cloud:'+Math.floor(t/WINDOW));
+function rarity(seed){ const x=rng(seed^0x7A11)(); return x<0.04?'무지개 구름':x<0.08?'고양이 구름':x<0.12?'황금 구름':null; }
+function shapeOf(seed){ return rarity(seed)==='고양이 구름' ? '고양이' : pick(rng(seed^0x5EED), SHAPES); }
+function puff(ctx,x,y,rad,tint){ circle(ctx,x,y,rad,radial(ctx,x,y-rad*0.3,0,x,y,rad,[[0,`rgba(${tint},1)`],[0.7,`rgba(${tint},.9)`],[1,`rgba(${tint},0)`]])); }
+function drawCloud(ctx,w,h,seed,t){
+  const r=rng(seed), hour=new Date(t).getHours(), night=hour>=20||hour<5, evening=hour>=17&&hour<20, rare=rarity(seed);
+  const sky = hour>=6&&hour<17 ? ['#7DB7E8','#CFE6F7'] : evening ? ['#F29E6D','#F7D29B'] : night ? ['#1D2848','#3A4A78'] : ['#9AB3D9','#F2C9A6'];
+  ctx.fillStyle=linear(ctx,0,0,0,h,[[0,sky[0]],[1,sky[1]]]); ctx.fillRect(0,0,w,h);
+  if(night) for(let i=0;i<40;i++){ ctx.fillStyle=`rgba(255,255,255,${r()*0.7+0.2})`; ctx.fillRect(r()*w,r()*h*0.7,w/320,w/320); }
+  const tint = rare==='황금 구름' ? '255,216,107' : night ? '200,210,235' : evening ? '255,235,220' : '255,255,255';
+  const s=Math.min(w,h*4/3), cx=w*(0.35+r()*0.3), cy=h*(0.4+r()*0.15);
+  if(rare==='무지개 구름'){ const bands=['#E8443A','#F39A2B','#F6D743','#5DBB63','#3F8FD8','#7B5CC4'], st=s*0.025;
+    bands.forEach((c,i)=>{ ctx.beginPath(); ctx.arc(w/2,h*0.95,s*0.42-i*st,Math.PI,0); ctx.strokeStyle=c; ctx.globalAlpha=0.75; ctx.lineWidth=st; ctx.stroke(); ctx.globalAlpha=1; }); }
+  if(rare==='고양이 구름'){ const c={x:w/2,y:h*0.55}, z=s*0.2;
+    [-1,1].forEach(e=>{ ctx.beginPath(); ctx.moveTo(c.x+e*z*0.35,c.y-z*0.55); ctx.lineTo(c.x+e*z*0.95,c.y-z*1.25); ctx.lineTo(c.x+e*z,c.y-z*0.3); ctx.closePath(); ctx.fillStyle=`rgba(${tint},.95)`; ctx.fill(); });
+    puff(ctx,c.x,c.y,z*1.05,tint); puff(ctx,c.x-z*0.55,c.y+z*0.2,z*0.7,tint); puff(ctx,c.x+z*0.55,c.y+z*0.2,z*0.7,tint); puff(ctx,c.x,c.y-z*0.35,z*0.8,tint); return; }
+  const n=10+Math.floor(r()*14), spread=s*(0.18+r()*0.14);
+  for(let i=0;i<n;i++){ const x=cx+(r()-0.5)*spread*2, y=cy+(r()-0.5)*spread*0.7-Math.abs(x-cx)*0.1; puff(ctx,x,y,s*(0.06+r()*0.08),tint); }
+}
+function cloud(root){
+  const render = () => {
+    const saved=store.get('clouds',[]), now=Date.now(), seed=cloudSeed(now), ws=now-now%WINDOW, rare=rarity(seed), shape=shapeOf(seed), already=saved.some(c=>c.seed===seed);
+    unlockIf(!!rare,'cloud_rare');
+    root.innerHTML = `<div class="page">${bar('구름 수집')}
+      <div class="card" style="flex:1.6"><div class="cv" style="border-radius:12px;overflow:hidden"><canvas id="cloudC" aria-label="지금의 구름"></canvas></div>
+        <p style="font-weight:${rare?800:400}">${rare?`★ 희귀: ${rare} · `:''}${rare==='고양이 구름'?'누가 봐도 고양이입니다.':`어쩐지 ${shape}처럼 보입니다.`}</p>
+        <p class="small muted">이 구름은 <span class="mono" id="cloudLeft"></span> 뒤에 영원히 사라집니다.</p>
+        ${already ? `<p class="small muted">이미 수집한 구름입니다.</p>` : `<div class="namebox"><input id="cloudName" maxlength="20" placeholder="이 구름의 이름" aria-label="구름 이름"><button class="btn" id="saveCloud" type="button">수집</button></div>`}</div>
+      <div class="card scroll" style="flex:1"><span class="label">구름 도감 · ${saved.length}개</span>
+        ${saved.length ? `<div class="gallery">${saved.slice().reverse().map((c,i)=>`<figure><canvas data-i="${saved.length-1-i}"></canvas><figcaption>${rarity(c.seed)?'★ ':''}${esc(c.name)}</figcaption><span class="small muted mono">${stamp(c.at)}</span></figure>`).join('')}</div>` : `<p class="small muted">아직 모은 구름이 없습니다. 같은 구름은 두 번 오지 않습니다.</p>`}</div></div>`;
+    wireBack();
+    redraw = () => { const c=$('#cloudC'); if(c){ const ctx=fit(c); drawCloud(ctx,c.width,c.height,seed,ws); }
+      root.querySelectorAll('.gallery canvas').forEach(cv => { const s=saved[+cv.dataset.i]; const ctx=fit(cv); drawCloud(ctx,cv.width,cv.height,s.seed,s.at); }); };
+    redraw();
+    const sb=$('#saveCloud');
+    if(sb) sb.onclick = () => { const name=($('#cloudName').value.trim()||`${shape} 닮은 구름`).slice(0,20); saved.push({seed,at:ws,name}); store.set('clouds',saved); unlockIf(saved.length>=10,'cloud_10'); toast(`'${name}' 수집 완료`); render(); };
+    tick = () => { const left=WINDOW-(Date.now()%WINDOW), el=$('#cloudLeft'); if(el) el.textContent=`${pad(Math.floor(left/60000))}:${pad(Math.floor(left/1000)%60)}`; if(left<1000) setTimeout(render,1100); };
+    tick();
+  };
+  render();
+}
+
+/* ================= 5. sigh ================= */
+const SIGHS = [
+  ['monday','월요일 한숨',2.2,900,350,1.2,3],['commute','출근길 한숨',1.6,1100,500,1.5,3],['fridge','냉장고 앞 한숨',1.2,1300,700,2,3],
+  ['wifi','와이파이 한숨',0.9,1500,900,2.5,3],['loading','로딩 중 한숨',2.8,800,500,1,3],['sunday','일요일 밤 한숨',3.2,700,250,0.9,2],
+  ['relief','안도의 한숨',1.8,1000,300,1.1,2],['short','짧은 한숨',0.5,1400,1000,3,3],['resigned','체념의 한숨',2.6,600,200,0.8,2],
+  ['bother','귀찮음의 한숨',1.4,850,600,1.8,2],['dishes','설거지 한숨',2.0,950,420,1.3,2],['legend','전설의 한숨',4.5,1200,120,0.7,0.4,true],
+].map(([id,name,d,f0,f1,q,w,rare])=>({id,name,d,f0,f1,q,w,rare:!!rare}));
+// Recorded sighs (CC0 originals via Pixabay, see SOUNDS.md). Each type picks one and plays it faster or slower.
+const SAMPLES=['sounds/sigh_2.mp3','sounds/sigh_3.mp3','sounds/sigh_4.mp3'];
+let actx=null;
+function audio(){ actx = actx || new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); return actx; }
+function playRecorded(s){
+  return new Promise(res => {
+    try{
+      const a=new Audio(SAMPLES[hash(s.id)%SAMPLES.length]);
+      a.preservesPitch=false; a.mozPreservesPitch=false; a.webkitPreservesPitch=false;
+      a.playbackRate=Math.min(1.4,Math.max(0.7,s.f0/1000));
+      a.play().then(()=>res(true)).catch(()=>res(false));
+    }catch(e){ res(false); }
+  });
+}
+function playSynth(s){
+  try{ const ac=audio(), t=ac.currentTime, len=Math.floor(ac.sampleRate*s.d), buf=ac.createBuffer(1,len,ac.sampleRate), data=buf.getChannelData(0);
+    for(let i=0;i<len;i++) data[i]=Math.random()*2-1;
+    const src=ac.createBufferSource(); src.buffer=buf; const bp=ac.createBiquadFilter(); bp.type='bandpass'; bp.Q.value=s.q;
+    bp.frequency.setValueAtTime(s.f0,t); bp.frequency.exponentialRampToValueAtTime(s.f1,t+s.d);
+    const g=ac.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.5,t+Math.min(0.25,s.d*0.2)); g.gain.exponentialRampToValueAtTime(0.0001,t+s.d);
+    src.connect(bp).connect(g).connect(ac.destination); src.start(t); src.stop(t+s.d); }catch(e){}
+}
+function sigh(root){
+  redraw=null;
+  const found=new Set(store.get('sighs',[])); let count=store.get('sighCount',0);
+  root.innerHTML = `<div class="page">${bar('대신 한숨')}
+    <div class="card grow"><div class="stage" id="stage"><p class="small muted center" id="cap">버튼을 누르면 제가 대신 한숨을 쉽니다. 소리가 납니다.</p></div>
+      <button class="btn" id="sighBtn" type="button">하아… 대신 쉬어줘</button>
+      <p class="small muted center">대신 쉰 한숨 <span class="mono" id="sighN">${count}</span>번</p></div>
+    <div class="card"><span class="label">한숨 도감 · <span id="dexN">${found.size}</span>/${SIGHS.length}</span><div class="dex" id="dex"></div></div></div>`;
+  wireBack();
+  const drawDex = () => { $('#dex').innerHTML = SIGHS.map(s => found.has(s.name) ? `<div class="${s.rare?'rare':''}">${s.name}</div>` : `<div class="no">???</div>`).join(''); $('#dexN').textContent=found.size; };
+  drawDex();
+  $('#sighBtn').onclick = async () => {
+    let x=Math.random()*SIGHS.reduce((a,s)=>a+s.w,0), s=SIGHS[0]; for(const it of SIGHS){ x-=it.w; if(x<=0){ s=it; break; } }
+    if(!(await playRecorded(s))) playSynth(s);
+    count++; store.set('sighCount',count); $('#sighN').textContent=count;
+    const isNew=!found.has(s.name); found.add(s.name); store.set('sighs',[...found]); drawDex();
+    $('#cap').textContent = isNew ? `새 한숨 발견: ${s.name}` : s.name;
+    if(isNew && s.rare) toast('전설의 한숨을 발견했습니다. 아무 보상도 없습니다.');
+    unlockIf([2,3].includes(new Date().getHours()),'sigh_3am'); unlockIf(found.size===SIGHS.length,'sigh_all');
+    const p=document.createElement('span'); p.className='puff'; p.textContent = s.d>2.5?'하아아아…':s.d<1?'흐.':'후우…';
+    p.style.animationDuration=Math.max(1.2,s.d)+'s'; $('#stage').appendChild(p); setTimeout(()=>p.remove(), s.d*1000+400);
+  };
+}
+
+/* ================= 6. cricket ================= */
+const cricketAwake = (h=new Date().getHours()) => h>=20 || h<6;
+const nightKey = () => dateKey(Date.now()-6*3600e3);
+const chirpsPerMin = () => 70 + Math.floor(rng(hash('cricket:'+nightKey()+':'+install))()*90);
+function cricket(root){
+  const awake=cricketAwake(), per=chirpsPerMin();
+  const nights=new Set(store.get('cricketNights',[])); if(awake){ nights.add(nightKey()); store.set('cricketNights',[...nights]); }
+  if(!awake){ const n=store.get('cricketDay',0)+1; store.set('cricketDay',n); unlockIf(n>=5,'cricket_day'); }
+  root.innerHTML = `<div class="page">${bar('귀뚜라미 키우기')}
+    <div class="card grow"><div class="cv scene"><canvas id="crC" aria-label="귀뚜라미"></canvas></div>
+      ${awake ? `<p style="font-weight:800">깨어 있습니다. 오늘 밤 1분에 ${per}번 웁니다.</p>
+        <p class="small muted">돌베어의 법칙으로 추정한 기온: ${(10+(per-40)/7).toFixed(1)}℃. 실제 기온과는 관계없습니다.</p>
+        <button class="btn" id="listenBtn" type="button">울음 듣기</button>`
+      : `<p style="font-weight:800">자는 중입니다. 쉿.</p><p class="small muted">귀뚜라미는 저녁 8시에 일어납니다. 지금 깨울 방법은 없습니다.</p>`}
+      <div class="stats two"><div><b>${nights.size}</b><span>함께한 밤</span></div><div><b>${awake?'깨어 있음':'수면 중'}</b><span>상태</span></div></div></div></div>`;
+  wireBack();
+  let listening=false, bounce=0, raf=0, sched=0, nextT=0, start=performance.now();
+  const paint = () => { const c=$('#crC'); if(!c) return; const ctx=fit(c); drawCricketScene(ctx,c.width,c.height,awake,bounce); };
+  redraw = paint; paint();
+  function chirpAt(ac,t){ for(let p=0;p<3;p++){ const o=ac.createOscillator(), g=ac.createGain(), t0=t+p*0.035; o.frequency.value=4500; g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(0.18,t0+0.006); g.gain.exponentialRampToValueAtTime(0.0001,t0+0.022); o.connect(g).connect(ac.destination); o.start(t0); o.stop(t0+0.03); } }
+  function loop(){ const per_s=60/per; const ph=((performance.now()-start)/1000 % per_s)/per_s; bounce = ph<0.15 ? ph/0.15 : 1-(ph-0.15)/0.85; paint(); raf=requestAnimationFrame(loop); }
+  const lb=$('#listenBtn');
+  if(lb) lb.onclick = () => {
+    listening=!listening; lb.textContent = listening ? '그만 듣기' : '울음 듣기';
+    if(listening){ unlock('cricket_night'); const ac=audio(); nextT=ac.currentTime+0.05; start=performance.now();
+      sched=setInterval(()=>{ while(nextT < ac.currentTime+0.3){ chirpAt(ac,nextT); nextT+=60/per; } }, 100); loop(); }
+    else { clearInterval(sched); cancelAnimationFrame(raf); bounce=0; paint(); }
+  };
+  return () => { clearInterval(sched); cancelAnimationFrame(raf); };
+}
+function drawCricketScene(ctx,w,h,awake,bounce){
+  ctx.fillStyle=linear(ctx,0,0,0,h,awake?[[0,'#141B33'],[1,'#2B3763']]:[[0,'#8DB9DE'],[1,'#D9ECF7']]); ctx.fillRect(0,0,w,h);
+  if(awake){ const r=rng(7); for(let i=0;i<30;i++) circle(ctx,r()*w,r()*h*0.55,w/400,`rgba(255,255,255,${r()*0.6+0.2})`); circle(ctx,w*0.8,h*0.2,w*0.06,'#F5EBC4'); }
+  else circle(ctx,w*0.16,h*0.18,w*0.07,'#FFE27A');
+  const ground=h*0.74;
+  ctx.fillStyle=linear(ctx,0,ground,0,h,awake?[[0,'#2A2219'],[1,'#15110C']]:[[0,'#8A6A48'],[1,'#5E452D']]); ctx.fillRect(0,ground,w,h-ground);
+  const gr=rng(11), dark=awake?'#1C3322':'#4F7F3A', light=awake?'#2E5236':'#7DB25C';
+  for(let i=0;i<90;i++){ const x=gr()*w, len=h*(0.06+gr()*0.14), lean=(gr()-0.5)*w*0.05, bw=w*(0.004+gr()*0.005);
+    ctx.beginPath(); ctx.moveTo(x-bw,ground+h*0.02); ctx.quadraticCurveTo(x+lean*0.3,ground-len*0.5,x+lean,ground-len); ctx.quadraticCurveTo(x+lean*0.3+bw,ground-len*0.5,x+bw,ground+h*0.02); ctx.closePath(); ctx.fillStyle=gr()<0.5?dark:light; ctx.fill(); }
+  const bw=Math.min(w,h*4/3), bh=bw*0.75;
+  ctx.save(); ctx.translate((w-bw)/2, ground-bh*0.84); drawCricket(ctx,bw,awake,bounce); ctx.restore();
+  if(!awake){ const zr=rng(3); [[0.70,0.30],[0.76,0.22],[0.83,0.15]].forEach(([zx,zy],i)=>{ const s=w*(0.02+i*0.008), x=w*zx+zr()*4, y=h*zy;
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+s,y); ctx.lineTo(x,y+s); ctx.lineTo(x+s,y+s); ctx.strokeStyle='rgba(59,76,102,.8)'; ctx.lineWidth=s*0.18; ctx.lineCap='round'; ctx.stroke(); }); }
+}
+/* A field cricket from the side, facing right, on a 100×75 grid scaled to width w. */
+function drawCricket(ctx,w,awake,bounce){
+  const u=w/100, P=(x,y)=>[x*u,y*u], chirp=awake?bounce:0;
+  function limb(a,b,wa,wb,fill){ const dx=b[0]-a[0], dy=b[1]-a[1], len=Math.max(0.001,Math.hypot(dx,dy)), nx=-dy/len, ny=dx/len;
+    ctx.beginPath(); ctx.moveTo(a[0]+nx*wa/2,a[1]+ny*wa/2); ctx.lineTo(b[0]+nx*wb/2,b[1]+ny*wb/2); ctx.lineTo(b[0]-nx*wb/2,b[1]-ny*wb/2); ctx.lineTo(a[0]-nx*wa/2,a[1]-ny*wa/2); ctx.closePath(); ctx.fillStyle=fill; ctx.fill();
+    circle(ctx,a[0],a[1],wa/2,fill); circle(ctx,b[0],b[1],wb/2,fill); }
+  const gloss=linear(ctx,0,42*u,0,60*u,[[0,'#5A4232'],[0.5,'#1E140E'],[1,'#0D0907']]);
+  const legNear=linear(ctx,30*u,36*u,44*u,58*u,[[0,'#6B4A30'],[1,'#2A1C12']]), legFar='#1A120C';
+  const femur=linear(ctx,29*u,37*u,46*u,55*u,[[0,'#8A6440'],[1,'#3A2716']]);
+  ctx.fillStyle='rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(49*u,64*u,33*u,2*u,0,0,Math.PI*2); ctx.fill();
+  limb(P(46,54),P(33,39),4.5*u,2*u,legFar); limb(P(33,39),P(24,61),1.4*u,1*u,legFar);
+  limb(P(54,56),P(51,61.5),1.3*u,1*u,legFar); limb(P(51,61.5),P(46,62.5),1*u,0.8*u,legFar);
+  limb(P(64,56),P(67,61.5),1.3*u,1*u,legFar); limb(P(67,61.5),P(72,62.5),1*u,0.8*u,legFar);
+  limb(P(31,51),P(17,46),1*u,0.3*u,legFar); limb(P(31,53),P(16,53),1*u,0.3*u,legFar);
+  ctx.beginPath(); ctx.moveTo(56*u,47*u); ctx.bezierCurveTo(48*u,45*u,34*u,46*u,30*u,51*u); ctx.bezierCurveTo(29*u,55*u,34*u,58.5*u,42*u,58.5*u); ctx.bezierCurveTo(50*u,58.5*u,56*u,57*u,57*u,54*u); ctx.closePath(); ctx.fillStyle=gloss; ctx.fill();
+  ctx.strokeStyle='#3A2A1E'; ctx.lineWidth=0.35*u; for(let i=0;i<6;i++){ const x=34+i*3.8; ctx.beginPath(); ctx.moveTo(x*u,53.5*u); ctx.lineTo((x+0.8)*u,58*u); ctx.stroke(); }
+  ctx.save(); ctx.translate(56*u,47*u); ctx.rotate(-7*chirp*Math.PI/180); ctx.translate(-56*u,-47*u);
+  ctx.beginPath(); ctx.moveTo(57*u,45.5*u); ctx.bezierCurveTo(49*u,43.5*u,37*u,44*u,31.5*u,48.5*u); ctx.bezierCurveTo(33*u,51.5*u,45*u,52*u,57*u,50.5*u); ctx.closePath();
+  ctx.fillStyle=linear(ctx,0,44*u,0,52*u,[[0,'#6E5236'],[1,'#2E2116']]); ctx.fill();
+  ctx.strokeStyle='rgba(165,133,96,.55)'; ctx.lineWidth=0.3*u; for(let i=0;i<5;i++){ const y=45.2+i*1.3; ctx.beginPath(); ctx.moveTo(56*u,y*u); ctx.quadraticCurveTo(45*u,(y-0.6)*u,33*u,(y+2.6-i*0.4)*u); ctx.stroke(); }
+  ctx.strokeStyle='rgba(255,255,255,.28)'; ctx.lineWidth=0.6*u; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(55*u,45.6*u); ctx.quadraticCurveTo(46*u,44.4*u,37*u,46.2*u); ctx.stroke(); ctx.restore();
+  ctx.beginPath(); ctx.moveTo(55*u,45*u); ctx.bezierCurveTo(58*u,43*u,64*u,43*u,66*u,45*u); ctx.lineTo(66.5*u,55.5*u); ctx.bezierCurveTo(62*u,57*u,58*u,57*u,55.5*u,55.5*u); ctx.closePath(); ctx.fillStyle=gloss; ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.lineWidth=0.5*u; ctx.beginPath(); ctx.moveTo(57*u,45*u); ctx.lineTo(64.5*u,44.6*u); ctx.stroke();
+  circle(ctx,71*u,50*u,6.2*u,radial(ctx,70*u,47*u,0,70*u,47*u,7*u,[[0,'#4E3828'],[1,'#120C08']])); circle(ctx,69.5*u,46.5*u,1.6*u,'rgba(255,255,255,.22)');
+  ctx.fillStyle='#2B1A10'; ctx.beginPath(); ctx.ellipse(73.3*u,48.6*u,1.8*u,2.1*u,0,0,Math.PI*2); ctx.fill(); circle(ctx,72.6*u,47.6*u,0.6*u,`rgba(255,255,255,${awake?0.85:0.5})`);
+  limb(P(75.5,54),P(76.5,57.5),0.7*u,0.5*u,legFar); limb(P(74,55),P(74.5,58),0.6*u,0.4*u,legFar);
+  limb(P(64,55),P(68,60),1.6*u,1.2*u,legNear); limb(P(68,60),P(74,62.5),1.1*u,0.8*u,legNear);
+  limb(P(56,56),P(53,60.5),1.6*u,1.2*u,legNear); limb(P(53,60.5),P(47,62.5),1.1*u,0.8*u,legNear);
+  const hip=P(46,55), knee=P(30,37); limb(hip,knee,7*u,2.6*u,femur);
+  ctx.strokeStyle='rgba(42,26,14,.7)'; ctx.lineWidth=0.35*u; for(let i=1;i<=7;i++){ const t=i/8, cx=hip[0]+(knee[0]-hip[0])*t, cy=hip[1]+(knee[1]-hip[1])*t, half=(7-4.4*t)*u*0.35; ctx.beginPath(); ctx.moveTo(cx-half*0.8,cy-half*0.2); ctx.lineTo(cx+half*0.2,cy+half); ctx.stroke(); }
+  ctx.strokeStyle='rgba(255,255,255,.22)'; ctx.lineWidth=0.7*u; ctx.beginPath(); ctx.moveTo(44*u,51.5*u); ctx.lineTo(32*u,38.5*u); ctx.stroke();
+  const foot=P(21,61.5); limb(knee,foot,1.6*u,1.1*u,legNear);
+  ctx.strokeStyle='#1A110A'; ctx.lineWidth=0.3*u; for(let i=1;i<=6;i++){ const t=i/7, cx=knee[0]+(foot[0]-knee[0])*t, cy=knee[1]+(foot[1]-knee[1])*t; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx-1.4*u,cy+0.4*u); ctx.stroke(); }
+  limb(foot,P(14,62.5),0.9*u,0.6*u,legNear);
+  const droop=awake?0:10, tw=chirp*2; ctx.lineWidth=0.45*u; ctx.lineCap='round';
+  ctx.strokeStyle='#2A1C12'; ctx.beginPath(); ctx.moveTo(74*u,45*u); ctx.bezierCurveTo(82*u,(30+droop)*u,92*u,(14+droop*1.5-tw)*u,99*u,(8+droop*2)*u); ctx.stroke();
+  ctx.strokeStyle='#3A2818'; ctx.beginPath(); ctx.moveTo(73*u,45.5*u); ctx.bezierCurveTo(80*u,(34+droop)*u,86*u,(24+droop*1.4+tw)*u,97*u,(21+droop*1.8)*u); ctx.stroke();
+}
+
+/* ================= 7. nothing ================= */
+const ENCOURAGE=['잘하고 있습니다. 아무것도 안 하고 있습니다.','지금 이 순간에도 아무 일도 일어나지 않고 있습니다.','숨은 쉬어도 됩니다.','화면을 보고만 있어도 됩니다. 만지지만 마세요.','이 시간은 어디에도 쓰이지 않습니다.','돌이 당신을 존경할 것 같습니다. 모르겠지만.'];
+function nothing(root){
+  redraw=null;
+  let best=store.get('nothingBest',0), world=null, result=null, alive=true, unsub=null;
+  const render = () => {
+    root.innerHTML = `<div class="page">${bar('아무것도 안 하기')}
+      <div class="card"><p>시작을 누른 뒤 아무것도 만지지 마세요. 화면을 건드리거나, 키를 누르거나, 다른 탭으로 가면 끝납니다.</p>
+        ${result ? `<p style="font-weight:800">${esc(result)}</p>` : ''}
+        <div class="stats two"><div><b>${fmtDur(best*1000)}</b><span>내 최고 기록</span></div><div><b id="worldN">${world==null?'…':fmtDur(world*1000)}</b><span>${Shared.bestLabel}</span></div></div>
+        <button class="btn" id="startBtn" type="button">${result?'다시 아무것도 안 하기':'아무것도 안 하기 시작'}</button></div>
+      <p class="small muted center">세계 기록은 숫자만 저장됩니다. 누가 세웠는지는 아무도 모릅니다.</p></div>`;
+    wireBack(); $('#startBtn').onclick = start;
+  };
+  let shared=false;
+  Shared.ready.then(ok => { if(!ok || !alive) return; shared=true;
+    unsub = Shared.watchBest(mx => { world=mx; const el=$('#worldN'); if(el) el.textContent=fmtDur(mx*1000); }); });
+  function start(){
+    const t0=performance.now(); let wl=null;
+    const ov=document.createElement('div'); ov.className='overlay';
+    ov.innerHTML=`<div><span class="label">아무것도 안 하는 중</span><div class="mono" id="nt">00:00:00</div><p class="muted" id="nl">${ENCOURAGE[0]}</p></div>`;
+    document.body.appendChild(ov);
+    try{ navigator.wakeLock?.request('screen').then(l=>wl=l).catch(()=>{}); }catch(e){}
+    const iv=setInterval(()=>{ const ms=performance.now()-t0; $('#nt').textContent=fmtDur(ms); $('#nl').textContent=ENCOURAGE[Math.floor(ms/30000)%ENCOURAGE.length]; },250);
+    const end = reason => {
+      clearInterval(iv); ov.remove(); try{ wl?.release(); }catch(e){}
+      ['pointerdown','keydown','wheel'].forEach(t=>window.removeEventListener(t,onAct,true)); document.removeEventListener('visibilitychange',onVis);
+      const secs=Math.floor((performance.now()-t0)/1000), nb=secs>best;
+      if(nb){ best=secs; store.set('nothingBest',secs); }
+      // Only a new world record is sent (the server refuses anything that doesn't beat it).
+      if(shared && secs>0 && (world==null || secs>world)) Promise.resolve().then(()=>Shared.submitBest(secs)).catch(()=>{});
+      unlockIf(secs>=300,'nothing_5m'); unlockIf(secs>=3600,'nothing_1h');
+      result=`${reason} ${fmtDur(secs*1000)} 동안 아무것도 안 했습니다.`+(nb?' 개인 최고 기록입니다.':'');
+      if(alive && location.hash==='#nothing') render();
+    };
+    const onAct = e => { e.preventDefault(); e.stopPropagation(); end(e.type==='keydown'?'키를 눌렀습니다.':'화면을 만졌습니다.'); };
+    const onVis = () => { if(document.visibilityState==='hidden') end('다른 곳으로 갔습니다.'); };
+    setTimeout(()=>{ ['pointerdown','keydown','wheel'].forEach(t=>window.addEventListener(t,onAct,true)); document.addEventListener('visibilitychange',onVis); }, 300);
+  }
+  render();
+  return () => { alive=false; if(unsub) unsub(); };
+}
+
+/* ================= 8. measure ================= */
+function fmtLen(cm){ return cm>=100 ? (cm/100).toFixed(2)+'m' : cm.toFixed(1)+'cm'; }
+function measure(root){
+  redraw=null;
+  root.innerHTML = `<div class="page">${bar('쓸데없는 측정')}
+    <div class="card"><span class="label">오늘 · ${dateKey()}</span><div class="stats"><div><b id="mCm"></b><span>손가락 이동 거리</span></div><div><b id="mTap"></b><span>탭 횟수</span></div><div><b id="mT"></b><span>머문 시간</span></div></div></div>
+    <div class="card scroll grow"><span class="label">환산하면</span><ul class="log" id="conv"></ul></div>
+    <div class="card"><span class="label">지금까지 손가락이 이동한 총거리</span><div class="mono" style="font-size:24px" id="mTot"></div>
+      <p class="small muted">이 페이지에서 누른 채 움직인 것만 셉니다. 측정은 이 브라우저에만 남습니다.</p></div></div>`;
+  wireBack();
+  tick = () => {
+    const cm=m.cm; $('#mCm').textContent=fmtLen(cm); $('#mTap').textContent=fmt(m.taps); $('#mT').textContent=fmtDur(m.ms); $('#mTot').textContent=fmtLen(m.total);
+    $('#conv').innerHTML = [
+      `개미 걸음으로 약 ${fmt(Math.floor(cm/0.3))}걸음입니다.`,
+      `달팽이라면 ${(cm/100/0.013/60).toFixed(1)}분이 걸렸을 거리입니다.`,
+      `에베레스트 높이의 ${(cm/100/8849*100).toFixed(5)}%입니다.`,
+      `탭 한 번에 평균 ${(m.taps?cm/m.taps:0).toFixed(1)}cm씩 움직였습니다.`,
+      `이 시간 동안 지구는 약 ${fmt(Math.floor(m.ms/1000)*30)}km를 공전했습니다.`,
+    ].map(s=>`<li><span>${s}</span></li>`).join('');
+  };
+  tick();
+}
+
+/* ================= achievements ================= */
+function achievements(root){
+  redraw=null;
+  const have=unlocked();
+  root.innerHTML = `<div class="page">${bar('쓸모없는 업적')}
+    <p class="small muted">${have.size} / ${ACH.length} 달성 · 보상은 없습니다.</p>
+    <div class="card scroll grow">${ACH.map(([id,t,d,hidden])=>{ const g=have.has(id); return `<div class="ach"><span class="m ${g?'on':''}" aria-hidden="true">${g?'🏅':'?'}</span><div><b class="${g?'':'muted'}">${g||!hidden?t:'숨겨진 업적'}</b><span>${g||!hidden?d:'???'}</span></div></div>`; }).join('')}</div></div>`;
+  wireBack();
+}
+
+route();
+})();
+</script>
+
+</body>
+</html>
