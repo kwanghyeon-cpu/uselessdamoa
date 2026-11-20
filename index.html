@@ -51,6 +51,12 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 #app{height:100%;max-width:440px;margin:0 auto;display:flex;flex-direction:column}
 .page{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;padding-block:12px}
 .grow{flex:1;min-height:0}
+/* Columns: on a phone the main and side groups just stack (display:contents keeps the cards' own flex ratios);
+   on a wide browser window they sit side by side. Filled in by layoutColumns() in the script. */
+.cols{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px}
+.brand-row{display:flex;flex-direction:column;gap:12px}
+.center > div > img{margin:0 auto}
+.main-col,.side-col{display:contents}
 p{margin:0}
 h1,h2,h3{margin:0;font-weight:800;line-height:1.2;text-wrap:balance}
 button{font:inherit;color:inherit;cursor:pointer}
@@ -136,6 +142,38 @@ canvas{display:block;width:100%}
 .overlay .mono{font-size:48px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:calc(100% - 32px);text-align:center;z-index:30}
 .toast.on{opacity:1}
+/* Mouse users: hover feedback. */
+@media (hover:hover){
+  .tile,.wide{transition:border-color .15s,transform .15s}
+  .tile:hover,.wide:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .btn:hover{filter:brightness(1.06)}
+  .back:hover{border-color:var(--ink)}
+}
+.kbd{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;color:var(--muted)}
+.desk{display:none}
+/* Wide browser windows: a wider page, 4×2 menu, and two columns on screens with a list beside the main card. */
+@media (min-width:900px) and (min-height:520px){
+  body{padding-left:max(24px,env(safe-area-inset-left,0px));padding-right:max(24px,env(safe-area-inset-right,0px))}
+  #app{max-width:1120px}
+  .page{gap:16px;padding-block:20px}
+  .brand-row{flex-direction:row;align-items:flex-end;justify-content:space-between;gap:24px}
+  .brand-row .wasted{flex:0 0 360px;border-top:0;border-bottom:2px solid var(--ink)}
+  .brand h1{font-size:40px}
+  .grid{grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);gap:16px}
+  .tile{padding:18px;gap:8px}
+  .tile .hd{font-size:18px}
+  .tile p{font-size:14px;-webkit-line-clamp:3}
+  .ico{flex-basis:44px;width:44px;height:44px;font-size:24px}
+  .ico img{width:30px;height:30px}
+  .cols.split{flex-direction:row;gap:16px}
+  .cols.split .main-col{display:flex;flex-direction:column;gap:16px;flex:1.25 1 0;min-width:0;min-height:0}
+  .cols.split .side-col{display:flex;flex-direction:column;gap:16px;flex:1 1 0;min-width:0;min-height:0}
+  .bar h2{font-size:26px}
+  .gallery{grid-template-columns:repeat(4,1fr)}
+  .achlist{display:grid;grid-template-columns:1fr 1fr;column-gap:24px;align-content:start}
+  .bigbtn{min-height:260px}
+  .desk{display:inline}
+}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -149,6 +187,8 @@ canvas{display:block;width:100%}
 /* ================= utils ================= */
 const $ = s => document.querySelector(s);
 const ICONS = window.ICONS || {};
+// Mouse (or trackpad) as the main pointer: desktop browsers. Wording and the do-nothing rules follow it.
+const FINE = !!(window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches);
 function icon(name, size=22){ const s=ICONS[name]; return s ? `<img src="${s}" width="${size}" height="${size}" alt="" style="display:block">` : ''; }
 function showNotices(){
   const d=document.createElement('div'); d.className='notices'; d.setAttribute('role','dialog'); d.setAttribute('aria-label','오픈소스 및 저작물 고지');
@@ -196,7 +236,7 @@ const ACH = [
   ['sigh_all','한숨 박사','한숨 12종을 모두 모았습니다.'],
   ['nothing_5m','5분간 무(無)','5분 동안 아무것도 안 했습니다.'],
   ['nothing_1h','명상은 아닙니다','1시간 동안 아무것도 안 했습니다.'],
-  ['thumb_100m','손가락 마라토너','손가락이 이 페이지에서 100m를 이동했습니다.'],
+  ['thumb_100m','손가락 마라토너','손가락(또는 마우스)이 이 페이지에서 100m를 이동했습니다.'],
   ['cricket_night','밤의 청중','밤에 귀뚜라미 울음을 들었습니다.'],
   ['cricket_day','깨우지 마세요','낮에 자는 귀뚜라미를 5번 찾아갔습니다.',1],
 ];
@@ -219,7 +259,7 @@ setInterval(()=>{
 // Only touches on this page count. CSS pixels are 1/96 inch.
 let lastPt = null;
 document.addEventListener('pointerdown', e => { rollDay(); m.taps++; lastPt={x:e.clientX,y:e.clientY}; }, true);
-document.addEventListener('pointermove', e => { if(!lastPt || !e.buttons && e.pointerType==='mouse') { lastPt = e.buttons ? {x:e.clientX,y:e.clientY} : null; return; } const d=Math.hypot(e.clientX-lastPt.x, e.clientY-lastPt.y); m.cm += d/96*2.54; m.total += d/96*2.54; lastPt={x:e.clientX,y:e.clientY}; }, true);
+document.addEventListener('pointermove', e => { const counts = e.pointerType==='mouse' || e.buttons; if(!counts){ lastPt=null; return; } if(lastPt){ const d=Math.hypot(e.clientX-lastPt.x, e.clientY-lastPt.y); m.cm += d/96*2.54; m.total += d/96*2.54; } lastPt={x:e.clientX,y:e.clientY}; }, true);
 document.addEventListener('pointerup', () => { lastPt=null; }, true);
 
 /* ================= shared numbers ================= */
@@ -275,13 +315,13 @@ const APPS = [
   ['cloud','cloud','구름 수집','10분마다 바뀌는 구름. 놓치면 끝입니다.'],
   ['sigh','sigh','대신 한숨','당신 대신 한숨을 쉬어 드립니다.'],
   ['cricket','cricket','귀뚜라미 키우기','밤에만 깨어나 웁니다. 낮에는 잡니다.'],
-  ['nothing','nothing','아무것도 안 하기','만지지 않고 버티는 시간을 잽니다.'],
-  ['measure','measure','쓸데없는 측정','오늘 손가락이 움직인 거리 같은 것.'],
+  ['nothing','nothing','아무것도 안 하기', FINE ? '마우스도 키보드도 건드리지 않고 버티는 시간을 잽니다.' : '만지지 않고 버티는 시간을 잽니다.'],
+  ['measure','measure','쓸데없는 측정', FINE ? '오늘 마우스가 움직인 거리 같은 것.' : '오늘 손가락이 움직인 거리 같은 것.'],
 ];
 const screens = {home, rock, button, fortune, cloud, sigh, cricket, nothing, measure, achievements};
-let cleanup=null, tick=null;
+let cleanup=null, tick=null, primary=null;
 function route(){
-  if(cleanup){ cleanup(); cleanup=null; } tick=null;
+  if(cleanup){ cleanup(); cleanup=null; } tick=null; primary=null;
   const id = location.hash.slice(1);
   const fn = screens[id] && id!=='home' ? screens[id] : home;
   const root = $('#app'); root.innerHTML='';
@@ -290,6 +330,31 @@ function route(){
 window.addEventListener('hashchange', route);
 window.addEventListener('resize', () => { if(redraw) redraw(); });
 let redraw = null;
+
+/* Wide windows: group each screen's cards into a main column and a side column (cards marked "side").
+   Runs whenever a screen renders, including the ones that re-render themselves. */
+function layoutColumns(){
+  const page = $('#app > .page');
+  if(!page || page.querySelector(':scope > .cols') || !page.querySelector(':scope > .bar')) return;
+  const items = [...page.children].filter(el => !el.classList.contains('bar'));
+  const cols = document.createElement('div'); cols.className = 'cols';
+  const main = document.createElement('div'); main.className = 'main-col';
+  const side = document.createElement('div'); side.className = 'side-col';
+  items.forEach(el => (el.classList.contains('side') ? side : main).appendChild(el));
+  cols.append(main, side);
+  if(side.children.length) cols.classList.add('split');
+  page.appendChild(cols);
+  if(redraw) requestAnimationFrame(() => redraw && redraw());
+}
+new MutationObserver(layoutColumns).observe($('#app'), {childList:true});
+
+/* Keyboard: Esc goes back to the menu; Space/Enter does the screen's main action (press, pet, sigh…). */
+document.addEventListener('keydown', e => {
+  if(document.querySelector('.overlay, .notices')) return;
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+  if(e.key==='Escape' && location.hash && location.hash!=='#home'){ e.preventDefault(); location.hash=''; return; }
+  if(!typing && primary && (e.code==='Space' || (e.key==='Enter' && e.target===document.body))){ e.preventDefault(); if(!e.repeat) primary(); }
+});
 function bar(title){ return `<div class="bar"><button class="back" id="backBtn" type="button" aria-label="다모아로 돌아가기"><span class="backic" style="-webkit-mask-image:url(${ICONS.back||''});mask-image:url(${ICONS.back||''})"></span></button><h2>${title}</h2></div>`; }
 function wireBack(){ $('#backBtn').onclick = () => { history.length > 1 && location.hash ? (location.hash='') : route(); }; }
 
@@ -302,7 +367,7 @@ function tagFor(id){
   if(id==='sigh') return `도감 ${store.get('sighs',[]).length}/${SIGHS.length}`;
   if(id==='cricket') return cricketAwake() ? '깨어 있음' : '자는 중';
   if(id==='nothing') return `최고 ${fmtDur(store.get('nothingBest',0)*1000)}`;
-  if(id==='measure') return `오늘 탭 ${fmt(m.taps)}번`;
+  if(id==='measure') return `오늘 ${FINE?'클릭':'탭'} ${fmt(m.taps)}번`;
   return '';
 }
 function home(root){
@@ -310,8 +375,10 @@ function home(root){
   const visits = store.get('visits',0)+1; store.set('visits',visits);
   unlock('first_visit'); unlockIf(visits>=10,'visits_10');
   root.innerHTML = `<div class="page">
-    <div class="brand"><span class="label">쓸모없는 기능 8종 세트</span><h1>쓸모없음 <span class="x">다모아</span></h1></div>
-    <div class="wasted"><span class="small muted">여기서 쓸모없이 보낸 시간</span><span class="mono" id="wastedNum">${fmtDur(wasted)}</span></div>
+    <div class="brand-row">
+      <div class="brand"><span class="label">쓸모없는 기능 8종 세트</span><h1>쓸모없음 <span class="x">다모아</span></h1></div>
+      <div class="wasted"><span class="small muted">여기서 쓸모없이 보낸 시간</span><span class="mono" id="wastedNum">${fmtDur(wasted)}</span></div>
+    </div>
     <div class="grid">${APPS.map(([id,ico,name,desc])=>`<button class="tile" data-go="${id}" type="button"><span class="hd"><span class="ico" aria-hidden="true">${icon(ico)}</span>${name}</span><p>${desc}</p><span class="tag">${tagFor(id)}</span></button>`).join('')}</div>
     <button class="wide" data-go="achievements" type="button"><span class="ico" aria-hidden="true">${icon('medal')}</span><b>쓸모없는 업적</b><span class="small muted">${unlocked().size} / ${ACH.length} 달성 · 보상은 없습니다.</span></button>
     <p class="foot">${visits}번째 방문 · 웹 버전${window.USELESS_FOOTER || ''} · <button class="link" id="noticeBtn" type="button">고지</button></p>
@@ -356,13 +423,15 @@ function rock(root){
       <p class="speech" id="speech">${esc(s.name)}가 여기 있습니다.</p>
       <div class="stats"><div><b>D+${days}</b><span>함께한 날</span></div><div><b id="petN">${s.pets}</b><span>쓰다듬은 횟수</span></div><div><b>${(moss*100).toFixed(1)}%</b><span>이끼 덮임</span></div></div>
       <button class="btn" id="petBtn" type="button">쓰다듬기</button>
+      <p class="small muted center desk"><span class="kbd">Space</span> 키로도 됩니다 · <span class="kbd">Esc</span> 메뉴로</p>
     </div>
-    <div class="card scroll" style="flex:1"><span class="label">${esc(s.name)}의 일지 · 자리를 비운 사이</span>
+    <div class="card scroll side" style="flex:1"><span class="label">${esc(s.name)}의 일지 · 자리를 비운 사이</span>
       <ul class="log">${s.log.slice(0,15).map(e=>`<li><span class="t">${stamp(e.t)}</span><span>${esc(e.m)}</span></li>`).join('')}</ul></div>
   </div>`;
   wireBack();
   redraw = () => { const c=$('#rockC'); const ctx=fit(c); drawRock(ctx,c.width,c.height,s.seed,moss); };
   redraw();
+  primary = () => $('#petBtn').click();
   $('#petBtn').onclick = () => {
     s.pets++; store.set('rock', s); $('#petN').textContent=s.pets; unlockIf(s.pets>=100,'rock_pet_100');
     $('#speech').textContent = ROCK_REPLIES[Math.floor(Math.random()*ROCK_REPLIES.length)];
@@ -401,6 +470,7 @@ function button(root){
         <p class="small muted" id="note">세계 집계에 연결하는 중…</p><p class="small" id="nextMs" style="margin-top:4px"></p></div>
       <div class="bigbtn"><button id="bigBtn" type="button" aria-label="누르기"><canvas id="btnC"></canvas><span class="cap" id="cap">누르기</span></button></div>
       <p class="speech" id="msg">이 버튼은 아무것도 하지 않습니다.</p>
+      <p class="small muted center desk"><span class="kbd">Space</span> 키로도 됩니다 · <span class="kbd">Esc</span> 메뉴로</p>
       <div class="stats"><div><b id="mineN">${fmt(mine)}</b><span>내가 누른 횟수</span></div><div><b id="todayN">${todayN}</b><span>오늘 누른 횟수</span></div><div><b id="shareN">–</b><span>세계 지분</span></div></div>
     </div></div>`;
   wireBack();
@@ -447,6 +517,8 @@ function button(root){
   const setPress = v => { press=v; paint(); };
   btn.addEventListener('pointerdown', ()=>setPress(1));
   ['pointerup','pointerleave','pointercancel'].forEach(t=>btn.addEventListener(t, ()=>setPress(0)));
+  // Space/Enter press it too, with the same push-down look.
+  primary = () => { setPress(1); btn.click(); setTimeout(()=>setPress(0), 110); };
   btn.onclick = () => {
     mine++; todayN++; mineWorld++; unsent++;
     store.set('mine',mine); store.set('mineWorld',mineWorld); store.set('mineDay',today); store.set('mineToday',todayN);
@@ -501,10 +573,11 @@ function fortune(root){
         <p class="big">${esc(f.main)}</p><p>${esc(f.lucky)}</p><p class="muted">${esc(f.warn)}</p><hr><span class="label">오늘의 쓸모없는 사실</span><p class="small">${esc(f.fact)}</p></div>
         <p class="small muted center">다음 운세까지 <span class="mono" id="untilNext"></span></p>`
       : `<div class="card center" style="padding:24px 14px"><div aria-hidden="true">${icon('fortune',56)}</div><p style="margin:10px 0">오늘의 운세가 봉인되어 있습니다.<br>하루에 한 장만 뽑을 수 있습니다.</p><button class="btn" id="drawBtn" type="button">운세 뽑기</button></div>`}
-      <div class="card scroll grow"><span class="label">운세 도감 · ${Object.keys(got).length}장 모음</span>
+      <div class="card scroll grow side"><span class="label">운세 도감 · ${Object.keys(got).length}장 모음</span>
         ${past.length ? `<ul class="log">${past.slice(0,30).map(k=>`<li><span class="t">${k.slice(5)}</span><span>${esc(makeFortune(k).main)}</span></li>`).join('')}</ul>` : `<p class="small muted">지난 운세가 여기 쌓입니다. 내일 다시 오세요.</p>`}</div></div>`;
     wireBack();
     if(!has) $('#drawBtn').onclick = () => { got[key]=Date.now(); store.set('fortunes',got); unlockIf(Object.keys(got).length>=7,'fortune_7'); draw(); };
+    primary = has ? null : () => $('#drawBtn').click();
   };
   draw();
   tick = () => { const el=$('#untilNext'); if(!el) return; const n=new Date(); el.textContent=fmtDur(new Date(n.getFullYear(),n.getMonth(),n.getDate()+1)-n); };
@@ -542,7 +615,7 @@ function cloud(root){
         <p style="font-weight:${rare?800:400}">${rare?`★ 희귀: ${rare} · `:''}${rare==='고양이 구름'?'누가 봐도 고양이입니다.':`어쩐지 ${shape}처럼 보입니다.`}</p>
         <p class="small muted">이 구름은 <span class="mono" id="cloudLeft"></span> 뒤에 영원히 사라집니다.</p>
         ${already ? `<p class="small muted">이미 수집한 구름입니다.</p>` : `<div class="namebox"><input id="cloudName" maxlength="20" placeholder="이 구름의 이름" aria-label="구름 이름"><button class="btn" id="saveCloud" type="button">수집</button></div>`}</div>
-      <div class="card scroll" style="flex:1"><span class="label">구름 도감 · ${saved.length}개</span>
+      <div class="card scroll side" style="flex:1"><span class="label">구름 도감 · ${saved.length}개</span>
         ${saved.length ? `<div class="gallery">${saved.slice().reverse().map((c,i)=>`<figure><canvas data-i="${saved.length-1-i}"></canvas><figcaption>${rarity(c.seed)?'★ ':''}${esc(c.name)}</figcaption><span class="small muted mono">${stamp(c.at)}</span></figure>`).join('')}</div>` : `<p class="small muted">아직 모은 구름이 없습니다. 같은 구름은 두 번 오지 않습니다.</p>`}</div></div>`;
     wireBack();
     redraw = () => { const c=$('#cloudC'); if(c){ const ctx=fit(c); drawCloud(ctx,c.width,c.height,seed,ws); }
@@ -591,11 +664,12 @@ function sigh(root){
   root.innerHTML = `<div class="page">${bar('대신 한숨')}
     <div class="card grow"><div class="stage" id="stage"><p class="small muted center" id="cap">버튼을 누르면 제가 대신 한숨을 쉽니다. 소리가 납니다.</p></div>
       <button class="btn" id="sighBtn" type="button">하아… 대신 쉬어줘</button>
-      <p class="small muted center">대신 쉰 한숨 <span class="mono" id="sighN">${count}</span>번</p></div>
-    <div class="card"><span class="label">한숨 도감 · <span id="dexN">${found.size}</span>/${SIGHS.length}</span><div class="dex" id="dex"></div></div></div>`;
+      <p class="small muted center">대신 쉰 한숨 <span class="mono" id="sighN">${count}</span>번</p><p class="small muted center desk"><span class="kbd">Space</span> 키로도 됩니다 · <span class="kbd">Esc</span> 메뉴로</p></div>
+    <div class="card side"><span class="label">한숨 도감 · <span id="dexN">${found.size}</span>/${SIGHS.length}</span><div class="dex" id="dex"></div></div></div>`;
   wireBack();
   const drawDex = () => { $('#dex').innerHTML = SIGHS.map(s => found.has(s.name) ? `<div class="${s.rare?'rare':''}">${s.name}</div>` : `<div class="no">???</div>`).join(''); $('#dexN').textContent=found.size; };
   drawDex();
+  primary = () => $('#sighBtn').click();
   $('#sighBtn').onclick = async () => {
     let x=Math.random()*SIGHS.reduce((a,s)=>a+s.w,0), s=SIGHS[0]; for(const it of SIGHS){ x-=it.w; if(x<=0){ s=it; break; } }
     if(!(await playRecorded(s))) playSynth(s);
@@ -631,6 +705,7 @@ function cricket(root){
   function chirpAt(ac,t){ for(let p=0;p<3;p++){ const o=ac.createOscillator(), g=ac.createGain(), t0=t+p*0.035; o.frequency.value=4500; g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(0.18,t0+0.006); g.gain.exponentialRampToValueAtTime(0.0001,t0+0.022); o.connect(g).connect(ac.destination); o.start(t0); o.stop(t0+0.03); } }
   function loop(){ const per_s=60/per; const ph=((performance.now()-start)/1000 % per_s)/per_s; bounce = ph<0.15 ? ph/0.15 : 1-(ph-0.15)/0.85; paint(); raf=requestAnimationFrame(loop); }
   const lb=$('#listenBtn');
+  if(lb) primary = () => lb.click();
   if(lb) lb.onclick = () => {
     listening=!listening; lb.textContent = listening ? '그만 듣기' : '울음 듣기';
     if(listening){ unlock('cricket_night'); const ac=audio(); nextT=ac.currentTime+0.05; start=performance.now();
@@ -693,18 +768,21 @@ function drawCricket(ctx,w,awake,bounce){
 }
 
 /* ================= 7. nothing ================= */
-const ENCOURAGE=['잘하고 있습니다. 아무것도 안 하고 있습니다.','지금 이 순간에도 아무 일도 일어나지 않고 있습니다.','숨은 쉬어도 됩니다.','화면을 보고만 있어도 됩니다. 만지지만 마세요.','이 시간은 어디에도 쓰이지 않습니다.','돌이 당신을 존경할 것 같습니다. 모르겠지만.'];
+const ENCOURAGE=['잘하고 있습니다. 아무것도 안 하고 있습니다.','지금 이 순간에도 아무 일도 일어나지 않고 있습니다.','숨은 쉬어도 됩니다.',FINE ? '화면을 보고만 있어도 됩니다. 마우스는 놓아 두세요.' : '화면을 보고만 있어도 됩니다. 만지지만 마세요.','이 시간은 어디에도 쓰이지 않습니다.','돌이 당신을 존경할 것 같습니다. 모르겠지만.'];
 function nothing(root){
   redraw=null;
   let best=store.get('nothingBest',0), world=null, result=null, alive=true, unsub=null;
   const render = () => {
     root.innerHTML = `<div class="page">${bar('아무것도 안 하기')}
-      <div class="card"><p>시작을 누른 뒤 아무것도 만지지 마세요. 화면을 건드리거나, 키를 누르거나, 다른 탭으로 가면 끝납니다.</p>
+      <div class="card"><p>${FINE
+        ? '시작한 뒤 아무것도 하지 마세요. 마우스를 움직이거나, 클릭하거나, 키를 누르거나, 다른 탭으로 가면 끝납니다.'
+        : '시작을 누른 뒤 아무것도 만지지 마세요. 화면을 건드리거나, 키를 누르거나, 다른 탭으로 가면 끝납니다.'}</p>
         ${result ? `<p style="font-weight:800">${esc(result)}</p>` : ''}
         <div class="stats two"><div><b>${fmtDur(best*1000)}</b><span>내 최고 기록</span></div><div><b id="worldN">${world==null?'…':fmtDur(world*1000)}</b><span>${Shared.bestLabel}</span></div></div>
         <button class="btn" id="startBtn" type="button">${result?'다시 아무것도 안 하기':'아무것도 안 하기 시작'}</button></div>
       <p class="small muted center">세계 기록은 숫자만 저장됩니다. 누가 세웠는지는 아무도 모릅니다.</p></div>`;
     wireBack(); $('#startBtn').onclick = start;
+    primary = start;
   };
   let shared=false;
   Shared.ready.then(ok => { if(!ok || !alive) return; shared=true;
@@ -719,6 +797,7 @@ function nothing(root){
     const end = reason => {
       clearInterval(iv); ov.remove(); try{ wl?.release(); }catch(e){}
       ['pointerdown','keydown','wheel'].forEach(t=>window.removeEventListener(t,onAct,true)); document.removeEventListener('visibilitychange',onVis);
+      window.removeEventListener('pointermove',onMove,true);
       const secs=Math.floor((performance.now()-t0)/1000), nb=secs>best;
       if(nb){ best=secs; store.set('nothingBest',secs); }
       // Only a new world record is sent (the server refuses anything that doesn't beat it).
@@ -727,9 +806,17 @@ function nothing(root){
       result=`${reason} ${fmtDur(secs*1000)} 동안 아무것도 안 했습니다.`+(nb?' 개인 최고 기록입니다.':'');
       if(alive && location.hash==='#nothing') render();
     };
-    const onAct = e => { e.preventDefault(); e.stopPropagation(); end(e.type==='keydown'?'키를 눌렀습니다.':'화면을 만졌습니다.'); };
-    const onVis = () => { if(document.visibilityState==='hidden') end('다른 곳으로 갔습니다.'); };
-    setTimeout(()=>{ ['pointerdown','keydown','wheel'].forEach(t=>window.addEventListener(t,onAct,true)); document.addEventListener('visibilitychange',onVis); }, 300);
+    let done=false;
+    const finish = reason => { if(done) return; done=true; end(reason); };
+    const onAct = e => { if(e.type==='keydown' && e.repeat) return; e.preventDefault(); e.stopPropagation();
+      finish(e.type==='keydown' ? '키를 눌렀습니다.' : e.type==='wheel' ? '스크롤했습니다.' : FINE ? '클릭했습니다.' : '화면을 만졌습니다.'); };
+    const onVis = () => { if(document.visibilityState==='hidden') finish('다른 곳으로 갔습니다.'); };
+    // With a mouse, moving it counts as doing something (a small wobble of under 12px doesn't).
+    let origin=null;
+    const onMove = e => { if(e.pointerType!=='mouse') return; if(!origin){ origin={x:e.clientX,y:e.clientY}; return; }
+      if(Math.hypot(e.clientX-origin.x, e.clientY-origin.y) > 12) finish('마우스를 움직였습니다.'); };
+    setTimeout(()=>{ ['pointerdown','keydown','wheel'].forEach(t=>window.addEventListener(t,onAct,true)); document.addEventListener('visibilitychange',onVis);
+      window.addEventListener('pointermove',onMove,true); }, 300);
   }
   render();
   return () => { alive=false; if(unsub) unsub(); };
@@ -740,10 +827,10 @@ function fmtLen(cm){ return cm>=100 ? (cm/100).toFixed(2)+'m' : cm.toFixed(1)+'c
 function measure(root){
   redraw=null;
   root.innerHTML = `<div class="page">${bar('쓸데없는 측정')}
-    <div class="card"><span class="label">오늘 · ${dateKey()}</span><div class="stats"><div><b id="mCm"></b><span>손가락 이동 거리</span></div><div><b id="mTap"></b><span>탭 횟수</span></div><div><b id="mT"></b><span>머문 시간</span></div></div></div>
-    <div class="card scroll grow"><span class="label">환산하면</span><ul class="log" id="conv"></ul></div>
-    <div class="card"><span class="label">지금까지 손가락이 이동한 총거리</span><div class="mono" style="font-size:24px" id="mTot"></div>
-      <p class="small muted">이 페이지에서 누른 채 움직인 것만 셉니다. 측정은 이 브라우저에만 남습니다.</p></div></div>`;
+    <div class="card"><span class="label">오늘 · ${dateKey()}</span><div class="stats"><div><b id="mCm"></b><span>${FINE?'마우스':'손가락'} 이동 거리</span></div><div><b id="mTap"></b><span>${FINE?'클릭':'탭'} 횟수</span></div><div><b id="mT"></b><span>머문 시간</span></div></div></div>
+    <div class="card scroll grow side"><span class="label">환산하면</span><ul class="log" id="conv"></ul></div>
+    <div class="card"><span class="label">지금까지 ${FINE?'마우스가':'손가락이'} 이동한 총거리</span><div class="mono" style="font-size:24px" id="mTot"></div>
+      <p class="small muted">${FINE?'이 페이지 위에서 마우스가 움직인 거리를 화면 기준(1인치=96픽셀)으로 셉니다.':'이 페이지에서 누른 채 움직인 것만 셉니다.'} 측정은 이 브라우저에만 남습니다.</p></div></div>`;
   wireBack();
   tick = () => {
     const cm=m.cm; $('#mCm').textContent=fmtLen(cm); $('#mTap').textContent=fmt(m.taps); $('#mT').textContent=fmtDur(m.ms); $('#mTot').textContent=fmtLen(m.total);
@@ -751,7 +838,7 @@ function measure(root){
       `개미 걸음으로 약 ${fmt(Math.floor(cm/0.3))}걸음입니다.`,
       `달팽이라면 ${(cm/100/0.013/60).toFixed(1)}분이 걸렸을 거리입니다.`,
       `에베레스트 높이의 ${(cm/100/8849*100).toFixed(5)}%입니다.`,
-      `탭 한 번에 평균 ${(m.taps?cm/m.taps:0).toFixed(1)}cm씩 움직였습니다.`,
+      `${FINE?'클릭':'탭'} 한 번에 평균 ${(m.taps?cm/m.taps:0).toFixed(1)}cm씩 움직였습니다.`,
       `이 시간 동안 지구는 약 ${fmt(Math.floor(m.ms/1000)*30)}km를 공전했습니다.`,
     ].map(s=>`<li><span>${s}</span></li>`).join('');
   };
@@ -764,7 +851,7 @@ function achievements(root){
   const have=unlocked();
   root.innerHTML = `<div class="page">${bar('쓸모없는 업적')}
     <p class="small muted">${have.size} / ${ACH.length} 달성 · 보상은 없습니다.</p>
-    <div class="card scroll grow">${ACH.map(([id,t,d,hidden])=>{ const g=have.has(id); return `<div class="ach"><span class="m ${g?'on':''}" aria-hidden="true">${icon(g?'medal':'locked',26)}</span><div><b class="${g?'':'muted'}">${g||!hidden?t:'숨겨진 업적'}</b><span>${g||!hidden?d:'???'}</span></div></div>`; }).join('')}</div></div>`;
+    <div class="card scroll grow"><div class="achlist">${ACH.map(([id,t,d,hidden])=>{ const g=have.has(id); return `<div class="ach"><span class="m ${g?'on':''}" aria-hidden="true">${icon(g?'medal':'locked',26)}</span><div><b class="${g?'':'muted'}">${g||!hidden?t:'숨겨진 업적'}</b><span>${g||!hidden?d:'???'}</span></div></div>`; }).join('')}</div></div></div>`;
   wireBack();
 }
 
