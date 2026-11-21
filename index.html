@@ -953,7 +953,7 @@ function nothing(root){
     const iv=setInterval(()=>{ const ms=performance.now()-t0; $('#nt').textContent=fmtDur(ms); $('#nl').textContent=ENCOURAGE[Math.floor(ms/30000)%ENCOURAGE.length]; },250);
     // "지금 같이 아무것도 안 하는 사람": an anonymous presence doc (only a timestamp), counted every 10 s
     let liveIv=null, beatIv=null;
-    const showLive = () => Promise.resolve().then(()=>Shared.liveCount()).then(n => { const el=$('#nw'); if(el && n) el.textContent=`지금 전 세계에서 ${fmt(n)}명이 함께 아무것도 안 하고 있습니다.`; }).catch(()=>{});
+    const showLive = () => Promise.resolve().then(()=>Shared.liveCount()).then(n => { const el=$('#nw'); if(el && n) el.textContent = n<=1 ? '지금은 당신 혼자 아무것도 안 하고 있습니다.' : `지금 전 세계에서 ${fmt(n)}명이 함께 아무것도 안 하고 있습니다.`; }).catch(()=>{});
     if(shared){ Promise.resolve().then(()=>Shared.liveJoin()).then(showLive).catch(()=>{});
       liveIv=setInterval(showLive, 10000); beatIv=setInterval(()=>Promise.resolve().then(()=>Shared.liveBeat()).catch(()=>{}), 30000); }
     const end = reason => {
@@ -1088,7 +1088,9 @@ function recap(root){
       const file=new File([blob], name, {type:'image/png'});
       if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], text:`${year}년의 쓸모없음. 쓸모는 없었습니다.`}); return; }
     }catch(e){ if(e && e.name==='AbortError') return; }
-    // No share sheet (most desktop browsers): save the picture instead.
+    // No share sheet (most desktop browsers): save the picture instead. Inside Claude, saving goes through the viewer.
+    const dl = window.claude?.use ? await window.claude.use('downloads').catch(()=>null) : null;
+    if(dl){ try{ const r=await dl.save({filename:name, data:blob}); if(r && r.status==='saved') toast('카드를 그림 파일로 저장했습니다.'); }catch(e){} return; }
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(a.href), 4000); toast('카드를 그림 파일로 저장했습니다.');
   }, 'image/png');
