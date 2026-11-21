@@ -19,9 +19,9 @@
 </script>
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-  import { getFirestore, doc, onSnapshot, setDoc, increment, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  import { getFirestore, doc, collection, query, where, onSnapshot, setDoc, deleteDoc, getCountFromServer, increment, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
   const app = initializeApp({"apiKey":"AIzaSyBs3l3QzvhPfrusgetIvL4YbmrgV05t3Qs","authDomain":"uselessdamoa.firebaseapp.com","projectId":"uselessdamoa","storageBucket":"uselessdamoa.firebasestorage.app","messagingSenderId":"351461403017","appId":"1:351461403017:web:82a3c4a26165b130fbd958"});
-  window.FB = { db: getFirestore(app), doc, onSnapshot, setDoc, increment, serverTimestamp };
+  window.FB = { db: getFirestore(app), doc, collection, query, where, onSnapshot, setDoc, deleteDoc, getCountFromServer, increment, serverTimestamp, Timestamp };
   window.dispatchEvent(new Event('fb-ready'));
 </script>
 </head>
@@ -93,14 +93,28 @@ canvas{display:block;width:100%}
 .brand h1{font-size:30px;font-weight:900}
 .wasted{display:flex;justify-content:space-between;align-items:center;border-top:2px solid var(--ink);border-bottom:1px solid var(--line);padding:6px 2px}
 .wasted .mono{font-size:20px}
-.grid{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(4,1fr);gap:10px}
+.grid{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(5,1fr);gap:8px}
 .tile{display:flex;flex-direction:column;gap:4px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;min-height:0;overflow:hidden}
 .tile .hd{display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;line-height:1.2}
 .ico{flex:0 0 32px;width:32px;height:32px;border-radius:10px;background:var(--bg);display:grid;place-items:center;font-size:18px}
-.tile p{font-size:12px;color:var(--muted);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tile p{font-size:12px;color:var(--muted);line-height:1.35;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
 .tile .tag{margin-top:auto;font-size:12px;color:var(--muted)}
 .wide{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px 12px;text-align:left}
 .wide b{font-size:15px}
+.homerow{display:flex;gap:10px}
+.homerow .wide{flex:1 1 0;min-width:0}
+.homerow .mission{flex:1.8 1 0}
+.wide .mtext{display:flex;flex-direction:column;min-width:0}
+.wide .mtext b,.wide .mtext span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wide.mission.done{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,var(--surface))}
+.chips{display:flex;gap:6px;overflow-x:auto;align-items:center;scrollbar-width:none;padding-bottom:2px}
+.chips button{flex:0 0 auto;border:1px solid var(--line);background:none;color:var(--ink);border-radius:999px;padding:5px 11px;font-size:13px}
+.chips button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:800}
+.chips button:disabled{color:var(--muted)}
+.goal{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.goal i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.recapimg{flex:1;min-height:0;display:grid;place-items:center}
+.recapimg canvas{max-width:100%;max-height:100%;border-radius:10px;aspect-ratio:4/5}
 .foot{font-size:12px;color:var(--muted);text-align:center}
 
 /* screens */
@@ -159,7 +173,7 @@ canvas{display:block;width:100%}
   .brand-row{flex-direction:row;align-items:flex-end;justify-content:space-between;gap:24px}
   .brand-row .wasted{flex:0 0 360px;border-top:0;border-bottom:2px solid var(--ink)}
   .brand h1{font-size:40px}
-  .grid{grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);gap:16px}
+  .grid{grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(2,1fr);gap:16px}
   .tile{padding:18px;gap:8px}
   .tile .hd{font-size:18px}
   .tile p{font-size:14px;-webkit-line-clamp:3}
@@ -239,10 +253,42 @@ const ACH = [
   ['thumb_100m','손가락 마라토너','손가락(또는 마우스)이 이 페이지에서 100m를 이동했습니다.'],
   ['cricket_night','밤의 청중','밤에 귀뚜라미 울음을 들었습니다.'],
   ['cricket_day','깨우지 마세요','낮에 자는 귀뚜라미를 5번 찾아갔습니다.',1],
+  ['mission_7','쓸모없는 성실함','오늘의 임무를 7일 연속 해냈습니다.'],
+  ['cactus_10cm','안 오길 잘했다','선인장이 10cm가 넘었습니다.',1],
+  ['sounds_all','효과음 수집가','버튼 효과음을 모두 모았습니다.'],
 ];
 function unlocked(){ return new Set(store.get('ach', [])); }
 function unlock(id){ const s=unlocked(); if(s.has(id)) return; const a=ACH.find(x=>x[0]===id); if(!a) return; s.add(id); store.set('ach',[...s]); toast('업적 달성: '+a[1]); }
 function unlockIf(c,id){ if(c) unlock(id); }
+
+/* ================= today's useless mission ================= */
+// One a day, from the date and the install seed, built from things already counted. "Exact" ones fail on overshoot.
+const MISSIONS = [
+  ['pet7','돌을 정확히 7번 쓰다듬기','pet',7,1], ['pet30','돌을 30번 쓰다듬기','pet',30],
+  ['press50','버튼을 50번 누르기','press',50], ['press77','버튼을 정확히 77번 누르기','press',77,1],
+  ['sigh3','한숨을 3번 맡기기','sigh',3], ['sigh1','한숨을 딱 한 번만 쉬기','sigh',1,1],
+  ['nothing60','아무것도 안 하기 1분 버티기','nothing',60], ['nothing180','아무것도 안 하기 3분 버티기','nothing',180],
+  ['cloud1','구름 하나 수집하기','cloud',1], ['fortune','오늘의 운세 뽑기','fortune',1],
+  ['taps100',FINE?'이 페이지에서 100번 클릭하기':'이 페이지에서 100번 탭하기','taps',100],
+].map(([id,text,metric,target,exact])=>({id,text,metric,target,exact:!!exact}));
+const Daily = {
+  counts(){ const d=store.get('daily',{}); if(d.day!==dateKey()) return {day:dateKey()}; return d; },
+  count(metric){ return metric==='taps' ? (rollDay(), m.taps) : (this.counts()[metric]||0); },
+  inc(metric, by=1){ const d=this.counts(); d[metric]=(d[metric]||0)+by; store.set('daily',d); this.check(); },
+  max(metric, v){ const d=this.counts(); if(v>(d[metric]||0)){ d[metric]=v; store.set('daily',d); } this.check(); },
+  today(){ return pick(rng(hash('mission:'+dateKey()+':'+install)), MISSIONS); },
+  state(){ const ms=this.today(); if(store.get('mDoneDay','')===dateKey()) return 'done'; return ms.exact && this.count(ms.metric)>ms.target ? 'failed' : 'going'; },
+  streak(){ const last=store.get('mDoneDay',''); return last===dateKey() || last===dateKey(Date.now()-864e5) ? store.get('mStreak',0) : 0; },
+  best(){ return store.get('mBest',0); },
+  check(){
+    if(store.get('mDoneDay','')===dateKey()) return;
+    const ms=this.today(), c=this.count(ms.metric);
+    if(!(ms.exact ? c===ms.target : c>=ms.target)) return;
+    const s = store.get('mDoneDay','')===dateKey(Date.now()-864e5) ? store.get('mStreak',0)+1 : 1;
+    store.set('mDoneDay',dateKey()); store.set('mStreak',s); store.set('mBest',Math.max(s,store.get('mBest',0)));
+    toast(`오늘의 임무 완료. 보상은 없습니다. (연속 ${s}일)`); unlockIf(s>=7,'mission_7');
+  },
+};
 
 /* ================= time spent + measurement ================= */
 let wasted = store.get('wasted', 0), lastTick = Date.now();
@@ -254,6 +300,7 @@ setInterval(()=>{
   if(document.visibilityState==='visible'){ wasted+=dt; rollDay(); m.ms+=dt; }
   store.set('wasted', wasted); store.set('measure', m);
   unlockIf(wasted>=3600e3,'wasted_1h'); unlockIf(m.total>=10000,'thumb_100m');
+  if(Daily.today().metric==='taps') Daily.check();
   if(tick) tick();
 }, 1000);
 // Only touches on this page count. CSS pixels are 1/96 inch.
@@ -267,6 +314,9 @@ document.addEventListener('pointerup', () => { lastPt=null; }, true);
 // - public web page (GitHub Pages, built by build-pages.mjs): the Android app's Firebase, so web and app count together;
 // - inside Claude: the artifact's own db (a Claude page can't reach other servers).
 // Both hand back numbers only, never who pressed.
+// The world goal runs on UTC days, the same everywhere (and the same as the app).
+function utcDay(t=Date.now()){ return new Date(t).toISOString().slice(0,10).replace(/-/g,''); }
+const DAILY_GOAL = 1000;
 const Shared = window.USELESS_FIREBASE ? firebaseShared() : artifactShared();
 function artifactShared(){
   let db=null, me=null;
@@ -281,7 +331,16 @@ function artifactShared(){
       let t=0, moved=false; snap.docs.forEach(d => { t += Number(d.data().count)||0; });
       if(!first) snap.docChanges().forEach(ch => { if(ch.doc.id!==me) moved=true; });
       first=false; cb(t, moved, true); }, err); },
-    add(n, mineTotal){ return db.collection('presses').doc(me).set({count:mineTotal, at:Date.now()}); },
+    add(n, mineTotal, todayMine){ return db.collection('presses').doc(me).set({count:mineTotal, day:utcDay(), today:todayMine, at:Date.now()}); },
+    // today's world goal: everyone's own "today" (UTC day) added up
+    watchToday(cb){ return db.collection('presses').limit(1000).onSnapshot(snap => { let t=0; snap.docs.forEach(d => { const x=d.data(); if(x.day===utcDay()) t += Number(x.today)||0; }); cb(t); }, ()=>{}); },
+    // doing nothing right now: one doc per person, refreshed while running; counted if fresher than 75 s
+    liveJoin(){ return db.collection('live').doc(me).set({at:Date.now()}); },
+    liveBeat(){ return db.collection('live').doc(me).set({at:Date.now()}); },
+    liveLeave(){ return db.collection('live').doc(me).set({at:0}); },
+    liveCount(){ return new Promise(res => { let un=null, got=false; un=db.collection('live').limit(1000).onSnapshot(snap => {
+      if(got) return; got=true; const since=Date.now()-75e3; res(snap.docs.filter(d => (Number(d.data().at)||0) > since).length);
+      setTimeout(() => un && un()); }, () => res(null)); }); },
     watchBest(cb){ return db.collection('nothing').limit(1000).onSnapshot(s => { let mx=0; s.docs.forEach(d => { mx=Math.max(mx, Number(d.data().best)||0); }); cb(mx); }, ()=>{}); },
     submitBest(secs){ return db.collection('nothing').doc(me).set({best:secs, at:Date.now()}); },
   };
@@ -293,7 +352,7 @@ function firebaseShared(){
     setTimeout(() => res(!!window.FB), 10000);
   });
   const ref = id => window.FB.doc(window.FB.db, 'counters', id);
-  let lastServer=null, sent=0;
+  let lastServer=null, sent=0, liveRef=null;
   return {
     ready, countLabel:'앱과 함께 세는 전 세계 실시간 집계', bestLabel:'세계 기록',
     watchCount(cb, err){ const F=window.FB; return F.onSnapshot(ref('button'), {includeMetadataChanges:true}, s => {
@@ -301,7 +360,16 @@ function firebaseShared(){
       if(online && !s.metadata.hasPendingWrites){ if(lastServer!=null && c-lastServer>sent) moved=true; lastServer=c; sent=0; }
       cb(c, moved, online); }, err); },
     // Atomic increments of at most 50 each (firestore.rules allows no more).
-    async add(n){ const F=window.FB; while(n>0){ const k=Math.min(50,n); n-=k; sent+=k; await F.setDoc(ref('button'), {count:F.increment(k), at:F.serverTimestamp()}, {merge:true}); } },
+    // The daily doc is written separately, so a refused daily write never blocks the all-time count.
+    async add(n){ const F=window.FB; while(n>0){ const k=Math.min(50,n); n-=k; sent+=k; const data={count:F.increment(k), at:F.serverTimestamp()};
+      F.setDoc(F.doc(F.db,'daily',utcDay()), data, {merge:true}).catch(()=>{});
+      await F.setDoc(ref('button'), data, {merge:true}); } },
+    watchToday(cb){ const F=window.FB; return F.onSnapshot(F.doc(F.db,'daily',utcDay()), s => cb(Number(s.get('count'))||0), ()=>{}); },
+    liveJoin(){ const F=window.FB; liveRef=F.doc(F.collection(F.db,'live')); return F.setDoc(liveRef, {at:F.serverTimestamp()}); },
+    liveBeat(){ const F=window.FB; return liveRef && F.setDoc(liveRef, {at:F.serverTimestamp()}); },
+    liveLeave(){ const F=window.FB; const r=liveRef; liveRef=null; return r && F.deleteDoc(r); },
+    async liveCount(){ const F=window.FB; const q=F.query(F.collection(F.db,'live'), F.where('at','>',F.Timestamp.fromMillis(Date.now()-75e3)));
+      return (await F.getCountFromServer(q)).data().count; },
     watchBest(cb){ const F=window.FB; return F.onSnapshot(ref('nothing'), s => cb(Number(s.get('best'))||0), ()=>{}); },
     submitBest(secs){ const F=window.FB; return F.setDoc(ref('nothing'), {best:secs, at:F.serverTimestamp()}); },
   };
@@ -317,8 +385,10 @@ const APPS = [
   ['cricket','cricket','귀뚜라미 키우기','밤에만 깨어나 웁니다. 낮에는 잡니다.'],
   ['nothing','nothing','아무것도 안 하기', FINE ? '마우스도 키보드도 건드리지 않고 버티는 시간을 잽니다.' : '만지지 않고 버티는 시간을 잽니다.'],
   ['measure','measure','쓸데없는 측정', FINE ? '오늘 마우스가 움직인 거리 같은 것.' : '오늘 손가락이 움직인 거리 같은 것.'],
+  ['cactus','cactus','열지 마세요 선인장','안 올수록 자랍니다. 열면 조금 줄어듭니다.'],
+  ['recap','recap','올해의 쓸모없음','내 기록으로 만든 결산 카드 한 장.'],
 ];
-const screens = {home, rock, button, fortune, cloud, sigh, cricket, nothing, measure, achievements};
+const screens = {home, rock, button, fortune, cloud, sigh, cricket, nothing, measure, cactus, recap, achievements};
 let cleanup=null, tick=null, primary=null;
 function route(){
   if(cleanup){ cleanup(); cleanup=null; } tick=null; primary=null;
@@ -368,7 +438,14 @@ function tagFor(id){
   if(id==='cricket') return cricketAwake() ? '깨어 있음' : '자는 중';
   if(id==='nothing') return `최고 ${fmtDur(store.get('nothingBest',0)*1000)}`;
   if(id==='measure') return `오늘 ${FINE?'클릭':'탭'} ${fmt(m.taps)}번`;
+  if(id==='cactus'){ const mm=store.get('cactusMm',0); return mm ? `키 ${(mm/10).toFixed(1)}cm` : '아직 안 받음'; }
+  if(id==='recap') return `${new Date().getFullYear()}년 결산`;
   return '';
+}
+function missionHtml(){
+  const ms=Daily.today(), st=Daily.state(), c=Daily.count(ms.metric), sk=Daily.streak();
+  const status = st==='done' ? '완료 · 보상 없음' : st==='failed' ? '넘쳤습니다. 내일 다시' : ms.metric==='nothing' ? `최고 ${c}초 / ${ms.target}초` : `${fmt(c)} / ${fmt(ms.target)}`;
+  return `<span class="ico" aria-hidden="true">${icon('mission')}</span><span class="mtext"><span class="small muted">오늘의 임무${sk?` · 연속 ${sk}일`:''}</span><b>${esc(ms.text)}</b><span class="small muted">${status}</span></span>`;
 }
 function home(root){
   redraw=null;
@@ -376,16 +453,20 @@ function home(root){
   unlock('first_visit'); unlockIf(visits>=10,'visits_10');
   root.innerHTML = `<div class="page">
     <div class="brand-row">
-      <div class="brand"><span class="label">쓸모없는 기능 8종 세트</span><h1>쓸모없음 <span class="x">다모아</span></h1></div>
+      <div class="brand"><span class="label">쓸모없는 기능 10종 세트</span><h1>쓸모없음 <span class="x">다모아</span></h1></div>
       <div class="wasted"><span class="small muted">여기서 쓸모없이 보낸 시간</span><span class="mono" id="wastedNum">${fmtDur(wasted)}</span></div>
     </div>
     <div class="grid">${APPS.map(([id,ico,name,desc])=>`<button class="tile" data-go="${id}" type="button"><span class="hd"><span class="ico" aria-hidden="true">${icon(ico)}</span>${name}</span><p>${desc}</p><span class="tag">${tagFor(id)}</span></button>`).join('')}</div>
-    <button class="wide" data-go="achievements" type="button"><span class="ico" aria-hidden="true">${icon('medal')}</span><b>쓸모없는 업적</b><span class="small muted">${unlocked().size} / ${ACH.length} 달성 · 보상은 없습니다.</span></button>
+    <div class="homerow">
+      <div class="wide mission ${Daily.state()}" id="missionTile" role="status">${missionHtml()}</div>
+      <button class="wide" data-go="achievements" type="button"><span class="ico" aria-hidden="true">${icon('medal')}</span><span class="mtext"><b>쓸모없는 업적</b><span class="small muted">${unlocked().size} / ${ACH.length} 달성</span></span></button>
+    </div>
     <p class="foot">${visits}번째 방문 · 웹 버전${window.USELESS_FOOTER || ''} · <button class="link" id="noticeBtn" type="button">고지</button></p>
   </div>`;
   $('#noticeBtn').onclick = showNotices;
   root.querySelectorAll('[data-go]').forEach(b => b.onclick = () => location.hash = b.dataset.go);
-  tick = () => { const el=$('#wastedNum'); if(el) el.textContent=fmtDur(wasted); };
+  tick = () => { const el=$('#wastedNum'); if(el) el.textContent=fmtDur(wasted);
+    const mt=$('#missionTile'); if(mt){ const h=missionHtml(); if(mt.dataset.h!==h){ mt.innerHTML=h; mt.dataset.h=h; } mt.className='wide mission '+Daily.state(); } };
 }
 
 /* ================= 1. rock ================= */
@@ -420,7 +501,7 @@ function rock(root){
   root.innerHTML = `<div class="page">${bar('돌멩이 키우기')}
     <div class="card" style="flex:1.3">
       <div class="cv"><canvas id="rockC" aria-label="${esc(s.name)}라는 돌"></canvas></div>
-      <p class="speech" id="speech">${esc(s.name)}가 여기 있습니다.</p>
+      <p class="speech" id="speech">${esc(rockGreeting(s.name, days))}</p>
       <div class="stats"><div><b>D+${days}</b><span>함께한 날</span></div><div><b id="petN">${s.pets}</b><span>쓰다듬은 횟수</span></div><div><b>${(moss*100).toFixed(1)}%</b><span>이끼 덮임</span></div></div>
       <button class="btn" id="petBtn" type="button">쓰다듬기</button>
       <p class="small muted center desk"><span class="kbd">Space</span> 키로도 됩니다 · <span class="kbd">Esc</span> 메뉴로</p>
@@ -433,10 +514,19 @@ function rock(root){
   redraw();
   primary = () => $('#petBtn').click();
   $('#petBtn').onclick = () => {
-    s.pets++; store.set('rock', s); $('#petN').textContent=s.pets; unlockIf(s.pets>=100,'rock_pet_100');
+    s.pets++; store.set('rock', s); $('#petN').textContent=s.pets; unlockIf(s.pets>=100,'rock_pet_100'); Daily.inc('pet');
     $('#speech').textContent = ROCK_REPLIES[Math.floor(Math.random()*ROCK_REPLIES.length)];
     const c=$('#rockC'); c.classList.remove('wiggle'); void c.offsetWidth; c.classList.add('wiggle');
   };
+}
+/* Korean seasons by month: winter Dec–Feb, spring Mar–May, rainy season Jun–Jul, summer Aug, autumn Sep–Nov. */
+function seasonNow(){ const mo=new Date().getMonth()+1; return [12,1,2].includes(mo)?'winter':mo<=5?'spring':mo<=7?'rainy':mo===8?'summer':'autumn'; }
+/* Anniversaries first, then a line about the season. */
+function rockGreeting(name, days){
+  if(days>0 && days%365===0) return `${name} 입양 ${days/365}주년입니다. 돌은 모릅니다.`;
+  if(days===100) return `${name}와 함께한 지 100일입니다. 돌은 모릅니다.`;
+  return {winter:`${name} 위에 눈이 쌓였습니다. 돌은 춥지 않습니다.`, spring:`${name} 옆에 꽃잎이 떨어졌습니다. 돌은 관심 없습니다.`,
+    rainy:`${name}가 비를 맞고 있습니다. 원래 젖어도 됩니다.`, summer:`${name}가 뜨끈합니다. 돌은 원래 그렇습니다.`, autumn:`${name} 위에 낙엽이 내려앉았습니다.`}[seasonNow()];
 }
 function drawRock(ctx,w,h,seed,moss){
   const r=rng(seed), k=Math.min(w/480,h/360);
@@ -453,7 +543,18 @@ function drawRock(ctx,w,h,seed,moss){
   for(let i=0;i<60;i++) circle(ctx,r()*w,r()*h,(r()*4+1)*k,`rgba(0,0,0,${r()*0.12})`);
   const mossC=css('--moss')||'#5E8C4A', n=Math.floor(moss*220)+4;
   for(let i=0;i<n;i++){ ctx.globalAlpha=0.5+r()*0.4; circle(ctx,w/2+(r()-0.5)*300*k, h*0.47-100*k+r()*120*k*(0.4+moss),(r()*6+2)*k,mossC); }
-  ctx.restore(); ctx.globalAlpha=1;
+  ctx.globalAlpha=1;
+  const season=seasonNow(), top=Math.min(...pts.map(p=>p[1]));
+  // winter: a cap of snow on the top of the rock
+  if(season==='winter'){ ctx.fillStyle='rgba(255,255,255,.92)'; ctx.fillRect(0,top-4*k,w,34*k);
+    for(let i=0;i<14;i++) circle(ctx,w/2+(r()-0.5)*240*k,top+30*k,(8+r()*10)*k,'#fff'); }
+  ctx.restore();
+  // the season around the rock (fixed per rock, so the scene doesn't jump between visits)
+  const sr=rng(seed^0x5EA5);
+  if(season==='winter') for(let i=0;i<40;i++) circle(ctx,sr()*w,sr()*h*0.8,(1.5+sr()*2.5)*k,'rgba(255,255,255,.85)');
+  if(season==='spring') for(let i=0;i<14;i++){ ctx.fillStyle='#F6B7C9'; ctx.beginPath(); ctx.ellipse(sr()*w,sr()*h*0.85,4.5*k,3*k,0,0,Math.PI*2); ctx.fill(); }
+  if(season==='rainy'){ ctx.strokeStyle='rgba(127,167,217,.7)'; ctx.lineWidth=2; for(let i=0;i<36;i++){ const x=sr()*w, y=sr()*h*0.8; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-4*k,y+16*k); ctx.stroke(); } }
+  if(season==='autumn') for(let i=0;i<7;i++){ ctx.fillStyle=['#D9822B','#C2452D','#E0B43A'][i%3]; ctx.beginPath(); ctx.ellipse(w/2+(sr()-0.5)*260*k, top+sr()*120*k, 8*k,5*k, sr()*Math.PI, 0,Math.PI*2); ctx.fill(); }
 }
 
 /* ================= 2. button ================= */
@@ -461,19 +562,55 @@ const NOTHING = ['아무 일도 일어나지 않았습니다.','역시 아무 �
 const SPECIAL = [77,100,123,500,777,1234,7777,12345,77777,123456,777777];
 const isMilestone = n => n>0 && (SPECIAL.includes(n) || n%1000===0);
 const nextMilestone = n => Math.min((Math.floor(n/1000)+1)*1000, ...SPECIAL.filter(x=>x>n), Infinity);
+/* Button sound effects, synthesized (no audio files). A new one unlocks every so many presses. */
+const BTN_SOUNDS = [['click','딸깍',0],['pop','뽁',30],['boop','뿅',80],['beep','삑',150],['ding','띵',250],['boing','보잉',400],['quack','꽥',600],['whoosh','슝',800],['none','무음',0]];
+const soundCache = {};
+function renderSound(ac, id){
+  const RATE=ac.sampleRate, dur={click:.03,pop:.08,boop:.18,beep:.12,ding:.9,boing:.5,quack:.22}[id]||.35, n=Math.floor(RATE*dur), r=rng(7), out=new Float32Array(n);
+  let ph=0, peak=1e-6; const TAU=Math.PI*2;
+  for(let i=0;i<n;i++){ const t=i/RATE, x=t/dur; let v;
+    if(id==='click') v=(r()*2-1)*Math.exp(-t*300);
+    else if(id==='pop'){ ph+=TAU*(500-380*x)/RATE; v=Math.sin(ph)*Math.exp(-t*45); }
+    else if(id==='boop'){ ph+=TAU*(300+900*x)/RATE; v=Math.sin(ph)*(1-x); }
+    else if(id==='beep'){ ph+=TAU*1200/RATE; v=(Math.sin(ph)>0?.5:-.5)*(x<.9?1:(1-x)*10); }
+    else if(id==='ding'){ ph+=TAU*1320/RATE; v=(Math.sin(ph)+.4*Math.sin(ph*2.76))*Math.exp(-t*5); }
+    else if(id==='boing'){ ph+=TAU*(180+60*Math.sin(TAU*14*t)*(1-x))/RATE; v=Math.sin(ph)*(1-x); }
+    else if(id==='quack'){ ph+=TAU*(520-200*x)/RATE; v=((ph/TAU)%1*2-1)*Math.sin(Math.PI*x)*(.6+.4*Math.sin(TAU*30*t)); }
+    else v=(r()*2-1)*Math.sin(Math.PI*x)*(.3+.7*x);
+    out[i]=v; peak=Math.max(peak,Math.abs(v)); }
+  const buf=ac.createBuffer(1,n,RATE), ch=buf.getChannelData(0); for(let i=0;i<n;i++) ch[i]=out[i]/peak*.55; return buf;
+}
+function playButtonSound(id){
+  if(id==='none') return;
+  try{ const ac=audio(); const buf=soundCache[id]||(soundCache[id]=renderSound(ac,id)); const s=ac.createBufferSource(); s.buffer=buf; s.connect(ac.destination); s.start(); }catch(e){}
+}
 function button(root){
   let mine = store.get('mine',0), mineWorld = store.get('mineWorld',0);
   const today = dateKey(); let todayN = store.get('mineDay','')===today ? store.get('mineToday',0) : 0;
+  // my presses on today's UTC day, for the world goal (the artifact version adds these up across people)
+  let utcN = store.get('mineUtcDay','')===utcDay() ? store.get('mineUtcToday',0) : 0;
+  let sound = store.get('btnSound','click'), todayWorld=null;
+  const chips = () => BTN_SOUNDS.map(([id,name,at]) => mine>=at ? `<button type="button" data-snd="${id}" class="${id===sound?'on':''}" aria-pressed="${id===sound}">${name}</button>` : `<button type="button" disabled title="${fmt(at)}번 누르면 열립니다">${fmt(at)}번</button>`).join('');
   root.innerHTML = `<div class="page">${bar('아무 일도 없는 버튼')}
     <div class="card grow">
       <div class="center"><span class="label">전 세계가 누른 횟수</span><div class="mono" style="font-size:34px" id="globalN">…</div>
-        <p class="small muted" id="note">세계 집계에 연결하는 중…</p><p class="small" id="nextMs" style="margin-top:4px"></p></div>
+        <p class="small muted" id="note">세계 집계에 연결하는 중…</p><p class="small" id="nextMs" style="margin-top:4px"></p>
+        <div class="goal" style="margin-top:8px" role="progressbar" aria-label="오늘의 전 세계 목표" aria-valuemin="0" aria-valuemax="${DAILY_GOAL}"><i id="goalBar" style="width:0%"></i></div>
+        <p class="small muted" id="goalTxt">오늘의 전 세계 목표 … / ${fmt(DAILY_GOAL)}</p></div>
       <div class="bigbtn"><button id="bigBtn" type="button" aria-label="누르기"><canvas id="btnC"></canvas><span class="cap" id="cap">누르기</span></button></div>
       <p class="speech" id="msg">이 버튼은 아무것도 하지 않습니다.</p>
       <p class="small muted center desk"><span class="kbd">Space</span> 키로도 됩니다 · <span class="kbd">Esc</span> 메뉴로</p>
       <div class="stats"><div><b id="mineN">${fmt(mine)}</b><span>내가 누른 횟수</span></div><div><b id="todayN">${todayN}</b><span>오늘 누른 횟수</span></div><div><b id="shareN">–</b><span>세계 지분</span></div></div>
+      <div class="chips" id="chips" aria-label="버튼 효과음"><span aria-hidden="true">${icon('sound',20)}</span>${chips()}</div>
     </div></div>`;
   wireBack();
+  const drawChips = () => { const el=$('#chips'); if(!el) return; el.innerHTML=`<span aria-hidden="true">${icon('sound',20)}</span>${chips()}`;
+    el.querySelectorAll('[data-snd]').forEach(b => b.onclick = () => { sound=b.dataset.snd; store.set('btnSound',sound); playButtonSound(sound); drawChips(); }); };
+  drawChips();
+  const showGoal = () => { if(todayWorld==null) return; const g=$('#goalBar'), t=$('#goalTxt'); if(!g) return;
+    g.style.width=Math.min(100,todayWorld*100/DAILY_GOAL)+'%';
+    t.textContent = todayWorld>=DAILY_GOAL ? `오늘의 전 세계 목표 달성 (${fmt(todayWorld)} / ${fmt(DAILY_GOAL)}). 아무 일도 일어나지 않았습니다.` : `오늘의 전 세계 목표 ${fmt(todayWorld)} / ${fmt(DAILY_GOAL)} · 달성하면 아무 일도 일어나지 않습니다`; };
+  let unsubToday=null;
   // base: the shared total as last reported; unsent: presses waiting for the next batched write.
   let base=null, unsent=0, writing=false, canWrite=true, alive=true, unsub=null, timer, press=0, size=0, solo=false, ok=false;
   // Without the shared store, count alone instead of showing "…" forever.
@@ -499,7 +636,8 @@ function button(root){
   Shared.ready.then(r => {
     if(!alive) return;
     ok = r;
-    if(!ok){ solo=true; render(); note('세계 집계 없이 혼자 누르는 중입니다.'); return; }
+    if(!ok){ solo=true; render(); note('세계 집계 없이 혼자 누르는 중입니다.'); $('#goalTxt').textContent='오늘의 전 세계 목표는 세계 집계에 연결되어야 보입니다.'; return; }
+    unsubToday = Shared.watchToday(n => { todayWorld = Math.max(n, todayWorld||0); showGoal(); });
     unsub = Shared.watchCount((total, moved, online) => {
       base = total; if(!alive) return; render();
       if(online) note(Shared.countLabel);
@@ -509,7 +647,7 @@ function button(root){
   async function flush(){
     if(!ok || !canWrite || writing || !unsent) return;
     writing=true; const n=unsent; unsent=0;
-    try{ await Shared.add(n, mine); }
+    try{ await Shared.add(n, mine, utcN); }
     catch(e){ canWrite=false; note('집계에 쓰지 못했습니다. 내 횟수는 이 기기에만 남습니다.'); }
     writing=false; if(unsent) flush();
   }
@@ -522,6 +660,13 @@ function button(root){
   btn.onclick = () => {
     mine++; todayN++; mineWorld++; unsent++;
     store.set('mine',mine); store.set('mineWorld',mineWorld); store.set('mineDay',today); store.set('mineToday',todayN);
+    if(store.get('mineUtcDay','')!==utcDay()){ utcN=0; store.set('mineUtcDay',utcDay()); } utcN++; store.set('mineUtcToday',utcN);
+    playButtonSound(sound);
+    if(todayWorld!=null){ todayWorld++; showGoal(); }
+    const fresh = BTN_SOUNDS.find(([,,at]) => at>0 && at===mine);
+    if(fresh){ toast(`새 효과음: ${fresh[1]}`); drawChips(); }
+    unlockIf(BTN_SOUNDS.every(([,,at]) => mine>=at),'sounds_all');
+    Daily.inc('press');
     if(navigator.vibrate) try{ navigator.vibrate(15); }catch(e){}
     const w = shown();
     let msg;
@@ -531,7 +676,7 @@ function button(root){
     $('#msg').textContent=msg; unlockIf(mine>=100,'button_100'); render();
     clearTimeout(timer); timer=setTimeout(flush, 800);
   };
-  return () => { alive=false; clearTimeout(loadT); clearTimeout(timer); flush(); if(unsub) unsub(); };
+  return () => { alive=false; clearTimeout(loadT); clearTimeout(timer); flush(); if(unsub) unsub(); if(unsubToday) unsubToday(); };
 }
 /* Arcade push button seen slightly from above: metal bezel, dark housing, glossy red cap. */
 function drawArcadeButton(ctx,S,press){
@@ -576,7 +721,7 @@ function fortune(root){
       <div class="card scroll grow side"><span class="label">운세 도감 · ${Object.keys(got).length}장 모음</span>
         ${past.length ? `<ul class="log">${past.slice(0,30).map(k=>`<li><span class="t">${k.slice(5)}</span><span>${esc(makeFortune(k).main)}</span></li>`).join('')}</ul>` : `<p class="small muted">지난 운세가 여기 쌓입니다. 내일 다시 오세요.</p>`}</div></div>`;
     wireBack();
-    if(!has) $('#drawBtn').onclick = () => { got[key]=Date.now(); store.set('fortunes',got); unlockIf(Object.keys(got).length>=7,'fortune_7'); draw(); };
+    if(!has) $('#drawBtn').onclick = () => { got[key]=Date.now(); store.set('fortunes',got); unlockIf(Object.keys(got).length>=7,'fortune_7'); Daily.inc('fortune'); draw(); };
     primary = has ? null : () => $('#drawBtn').click();
   };
   draw();
@@ -615,19 +760,31 @@ function cloud(root){
         <p style="font-weight:${rare?800:400}">${rare?`★ 희귀: ${rare} · `:''}${rare==='고양이 구름'?'누가 봐도 고양이입니다.':`어쩐지 ${shape}처럼 보입니다.`}</p>
         <p class="small muted">이 구름은 <span class="mono" id="cloudLeft"></span> 뒤에 영원히 사라집니다.</p>
         ${already ? `<p class="small muted">이미 수집한 구름입니다.</p>` : `<div class="namebox"><input id="cloudName" maxlength="20" placeholder="이 구름의 이름" aria-label="구름 이름"><button class="btn" id="saveCloud" type="button">수집</button></div>`}</div>
-      <div class="card scroll side" style="flex:1"><span class="label">구름 도감 · ${saved.length}개</span>
+      <div class="card scroll side" style="flex:1"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="label">구름 도감 · ${saved.length}개</span>
+        <button class="link small" id="alertBtn" type="button" aria-pressed="${cloudAlerts()}">희귀 구름 알림 ${cloudAlerts()?'켜짐':'꺼짐'}</button></div>
         ${saved.length ? `<div class="gallery">${saved.slice().reverse().map((c,i)=>`<figure><canvas data-i="${saved.length-1-i}"></canvas><figcaption>${rarity(c.seed)?'★ ':''}${esc(c.name)}</figcaption><span class="small muted mono">${stamp(c.at)}</span></figure>`).join('')}</div>` : `<p class="small muted">아직 모은 구름이 없습니다. 같은 구름은 두 번 오지 않습니다.</p>`}</div></div>`;
     wireBack();
     redraw = () => { const c=$('#cloudC'); if(c){ const ctx=fit(c); drawCloud(ctx,c.width,c.height,seed,ws); }
       root.querySelectorAll('.gallery canvas').forEach(cv => { const s=saved[+cv.dataset.i]; const ctx=fit(cv); drawCloud(ctx,cv.width,cv.height,s.seed,s.at); }); };
     redraw();
+    $('#alertBtn').onclick = () => { store.set('cloudAlerts', !cloudAlerts()); toast(cloudAlerts() ? '이 페이지를 열어 두면 희귀 구름이 뜰 때 알려 드립니다.' : '희귀 구름 알림을 껐습니다.'); render(); };
     const sb=$('#saveCloud');
-    if(sb) sb.onclick = () => { const name=($('#cloudName').value.trim()||`${shape} 닮은 구름`).slice(0,20); saved.push({seed,at:ws,name}); store.set('clouds',saved); unlockIf(saved.length>=10,'cloud_10'); toast(`'${name}' 수집 완료`); render(); };
+    if(sb) sb.onclick = () => { const name=($('#cloudName').value.trim()||`${shape} 닮은 구름`).slice(0,20); saved.push({seed,at:ws,name}); store.set('clouds',saved); unlockIf(saved.length>=10,'cloud_10'); Daily.inc('cloud'); toast(`'${name}' 수집 완료`); render(); };
     tick = () => { const left=WINDOW-(Date.now()%WINDOW), el=$('#cloudLeft'); if(el) el.textContent=`${pad(Math.floor(left/60000))}:${pad(Math.floor(left/1000)%60)}`; if(left<1000) setTimeout(render,1100); };
     tick();
   };
   render();
 }
+
+/* Rare cloud notice: a web page can't wake you later, so while any screen of this page is open,
+   a toast says so when a new 10-minute window brings a rare cloud. */
+function cloudAlerts(){ return store.get('cloudAlerts', true); }
+let lastAlertWindow = Math.floor(Date.now()/WINDOW);
+setInterval(() => {
+  const w = Math.floor(Date.now()/WINDOW); if(w===lastAlertWindow) return; lastAlertWindow = w;
+  const rare = rarity(cloudSeed(Date.now()));
+  if(rare && cloudAlerts() && location.hash!=='#cloud' && document.visibilityState==='visible') toast(`지금 하늘에 ★${rare}이 떠 있습니다. 구름 수집에서 보세요.`);
+}, 5000);
 
 /* ================= 5. sigh ================= */
 const SIGHS = [
@@ -673,7 +830,7 @@ function sigh(root){
   $('#sighBtn').onclick = async () => {
     let x=Math.random()*SIGHS.reduce((a,s)=>a+s.w,0), s=SIGHS[0]; for(const it of SIGHS){ x-=it.w; if(x<=0){ s=it; break; } }
     if(!(await playRecorded(s))) playSynth(s);
-    count++; store.set('sighCount',count); $('#sighN').textContent=count;
+    count++; store.set('sighCount',count); $('#sighN').textContent=count; Daily.inc('sigh');
     const isNew=!found.has(s.name); found.add(s.name); store.set('sighs',[...found]); drawDex();
     $('#cap').textContent = isNew ? `새 한숨 발견: ${s.name}` : s.name;
     if(isNew && s.rare) toast('전설의 한숨을 발견했습니다. 아무 보상도 없습니다.');
@@ -790,19 +947,25 @@ function nothing(root){
   function start(){
     const t0=performance.now(); let wl=null;
     const ov=document.createElement('div'); ov.className='overlay';
-    ov.innerHTML=`<div><span class="label">아무것도 안 하는 중</span><div class="mono" id="nt">00:00:00</div><p class="muted" id="nl">${ENCOURAGE[0]}</p></div>`;
+    ov.innerHTML=`<div><span class="label">아무것도 안 하는 중</span><div class="mono" id="nt">00:00:00</div><p class="muted" id="nl">${ENCOURAGE[0]}</p><p class="small muted" id="nw" style="margin-top:14px"></p></div>`;
     document.body.appendChild(ov);
     try{ navigator.wakeLock?.request('screen').then(l=>wl=l).catch(()=>{}); }catch(e){}
     const iv=setInterval(()=>{ const ms=performance.now()-t0; $('#nt').textContent=fmtDur(ms); $('#nl').textContent=ENCOURAGE[Math.floor(ms/30000)%ENCOURAGE.length]; },250);
+    // "지금 같이 아무것도 안 하는 사람": an anonymous presence doc (only a timestamp), counted every 10 s
+    let liveIv=null, beatIv=null;
+    const showLive = () => Promise.resolve().then(()=>Shared.liveCount()).then(n => { const el=$('#nw'); if(el && n) el.textContent=`지금 전 세계에서 ${fmt(n)}명이 함께 아무것도 안 하고 있습니다.`; }).catch(()=>{});
+    if(shared){ Promise.resolve().then(()=>Shared.liveJoin()).then(showLive).catch(()=>{});
+      liveIv=setInterval(showLive, 10000); beatIv=setInterval(()=>Promise.resolve().then(()=>Shared.liveBeat()).catch(()=>{}), 30000); }
     const end = reason => {
-      clearInterval(iv); ov.remove(); try{ wl?.release(); }catch(e){}
+      clearInterval(iv); clearInterval(liveIv); clearInterval(beatIv); ov.remove(); try{ wl?.release(); }catch(e){}
+      if(shared) Promise.resolve().then(()=>Shared.liveLeave()).catch(()=>{});
       ['pointerdown','keydown','wheel'].forEach(t=>window.removeEventListener(t,onAct,true)); document.removeEventListener('visibilitychange',onVis);
       window.removeEventListener('pointermove',onMove,true);
       const secs=Math.floor((performance.now()-t0)/1000), nb=secs>best;
       if(nb){ best=secs; store.set('nothingBest',secs); }
       // Only a new world record is sent (the server refuses anything that doesn't beat it).
       if(shared && secs>0 && (world==null || secs>world)) Promise.resolve().then(()=>Shared.submitBest(secs)).catch(()=>{});
-      unlockIf(secs>=300,'nothing_5m'); unlockIf(secs>=3600,'nothing_1h');
+      unlockIf(secs>=300,'nothing_5m'); unlockIf(secs>=3600,'nothing_1h'); Daily.max('nothing', secs);
       result=`${reason} ${fmtDur(secs*1000)} 동안 아무것도 안 했습니다.`+(nb?' 개인 최고 기록입니다.':'');
       if(alive && location.hash==='#nothing') render();
     };
@@ -843,6 +1006,92 @@ function measure(root){
     ].map(s=>`<li><span>${s}</span></li>`).join('');
   };
   tick();
+}
+
+/* ================= 9. cactus ================= */
+// Grows while you stay away: 0.4 mm per hour away (at most 72 h per gap); each visit costs 1.5 mm (never below 5 mm).
+function cactus(root){
+  const now=Date.now(), last=store.get('cactusSeen',0); let hMm, hours=0, grew=0, first=!last;
+  if(first) hMm=20; else { hours=(now-last)/3600e3; grew=Math.min(hours,72)*0.4; hMm=Math.max(5, store.get('cactusMm',20)+grew-1.5); }
+  store.set('cactusMm',hMm); store.set('cactusSeen',now); unlockIf(hMm>=100,'cactus_10cm');
+  const line = first ? '선인장을 받았습니다. 이 선인장은 당신이 오지 않을 때 자랍니다.'
+    : hours<1 ? '또 오셨군요. 선인장이 조금 줄어들었습니다.'
+    : hours<24 ? `${hours.toFixed(0)}시간 만이네요. 그동안 ${grew.toFixed(1)}mm 자랐고, 지금 1.5mm 줄었습니다.`
+    : `${(hours/24).toFixed(0)}일 만이네요. 선인장이 아주 기뻐하지는 않습니다.`;
+  const away = first ? '–' : hours<1 ? `${Math.floor(hours*60)}분` : hours<48 ? `${hours.toFixed(0)}시간` : `${(hours/24).toFixed(0)}일`;
+  root.innerHTML = `<div class="page">${bar('열지 마세요 선인장')}
+    <div class="card grow"><div class="cv" style="border-radius:12px;overflow:hidden"><canvas id="cacC" aria-label="키 ${(hMm/10).toFixed(1)}cm인 선인장"></canvas></div>
+      <p class="center">${esc(line)}</p>
+      <div class="stats two"><div><b>${(hMm/10).toFixed(1)}cm</b><span>선인장 키</span></div><div><b>${away}</b><span>지난 방문 이후</span></div></div>
+      <p class="small muted center">자라는 법: 이 화면을 열지 않는 것. 1시간에 0.4mm씩 자라고, 열 때마다 1.5mm 줄어듭니다.</p></div></div>`;
+  wireBack();
+  redraw = () => { const c=$('#cacC'); const ctx=fit(c); drawCactus(ctx,c.width,c.height,hMm); };
+  redraw();
+}
+function drawCactus(ctx,w,h,mm){
+  ctx.fillStyle=linear(ctx,0,0,0,h,[[0,'#F6E7C8'],[1,'#E9CFA0']]); ctx.fillRect(0,0,w,h);
+  const ground=h*0.86; ctx.fillStyle='#D9B77E'; ctx.fillRect(0,ground,w,h-ground);
+  const potW=Math.min(w*0.32,h*0.34), potH=potW*0.62, potTop=ground-potH, cx=w/2;
+  ctx.beginPath(); ctx.moveTo(cx-potW/2,potTop); ctx.lineTo(cx+potW/2,potTop); ctx.lineTo(cx+potW*0.38,ground); ctx.lineTo(cx-potW*0.38,ground); ctx.closePath();
+  ctx.fillStyle=linear(ctx,cx-potW/2,0,cx+potW/2,0,[[0,'#B4583A'],[0.5,'#D9774F'],[1,'#9C4A30']]); ctx.fill();
+  const rr=(x,y,ww,hh,r)=>{ ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x,y,ww,hh,r) : ctx.rect(x,y,ww,hh); ctx.fill(); };
+  ctx.fillStyle='#C4613F'; rr(cx-potW*0.55,potTop-potH*0.16,potW*1.1,potH*0.2,6);
+  // 25 cm fills the space; taller cacti are squeezed to fit
+  const maxH=potTop-h*0.06, colH=Math.max(maxH*0.04, maxH*Math.min(1,mm/250)), colW=potW*0.36, top=potTop-colH;
+  ctx.fillStyle=linear(ctx,cx-colW/2,0,cx+colW/2,0,[[0,'#3E7D3A'],[0.5,'#6DB35E'],[1,'#356B31']]);
+  rr(cx-colW/2,top,colW,colH+4,colW/2);
+  if(mm>=60){ const ay=top+colH*0.45; rr(cx-colW*1.45,ay,colW*1.1,colW*0.42,colW*0.21); rr(cx-colW*1.45,ay-colH*0.25,colW*0.42,colH*0.25+colW*0.42,colW*0.21); }
+  if(mm>=120){ const ay=top+colH*0.3; rr(cx+colW*0.35,ay,colW*1.1,colW*0.42,colW*0.21); rr(cx+colW*1.03,ay-colH*0.18,colW*0.42,colH*0.18+colW*0.42,colW*0.21); }
+  ctx.strokeStyle='#F2F0D8'; ctx.lineWidth=2;
+  for(let y=top+colW*0.4, i=0; y<potTop-4; y+=colW*0.45, i++){ const x=cx+(i%2?1:-1)*colW*0.28; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+(i%2?1:-1)*colW*0.18,y-colW*0.1); ctx.stroke(); }
+  if(mm>=50){ const fy=top+colW*0.05; for(let k=0;k<6;k++){ const a=k*Math.PI/3; circle(ctx,cx+Math.cos(a)*colW*0.17,fy+Math.sin(a)*colW*0.17,colW*0.16,'#F27A9E'); } circle(ctx,cx,fy,colW*0.1,'#FFD45C'); }
+}
+
+/* ================= 10. year recap ================= */
+// Only the viewer's own numbers, drawn into an image they can save or send. Nothing is uploaded.
+function recapLines(){
+  const r=store.get('rock',null), km=m.total/100;
+  return [
+    [fmtDur(wasted),'쓸모없이 보낸 시간'], [`${fmt(r?r.pets:0)}번`,'돌을 쓰다듬은 횟수'], [`${fmt(store.get('mine',0))}번`,'아무 일도 없는 버튼'],
+    [`${fmt(store.get('sighCount',0))}번`,'대신 쉰 한숨'], [`${store.get('clouds',[]).length}개`,'모은 구름'], [fmtDur(store.get('nothingBest',0)*1000),'아무것도 안 하기 최고 기록'],
+    [km>=1?km.toFixed(2)+'m':m.total.toFixed(1)+'cm', FINE?'마우스가 걸은 거리':'손가락이 걸은 거리'], [`${(store.get('cactusMm',0)/10).toFixed(1)}cm`,'선인장 키'],
+    [`${Daily.best()}일`,'임무 최장 연속'], [`${unlocked().size} / ${ACH.length}`,'쓸모없는 업적'],
+  ];
+}
+function drawRecap(c){
+  const W=1080, H=1350; c.width=W; c.height=H; const ctx=c.getContext('2d'), year=new Date().getFullYear();
+  const font=(wt,px)=>`${wt} ${px}px "Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif`;
+  ctx.fillStyle=linear(ctx,0,0,0,H,[[0,'#1F242A'],[1,'#14171B']]); ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#ECEFF2'; ctx.font=font(800,64); ctx.fillText(`${year}년의`,80,150);
+  ctx.fillStyle='#FFCF33'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(72,180,568,110,14) : ctx.rect(72,180,568,110); ctx.fill();
+  ctx.fillStyle='#1C2128'; ctx.font=font(900,84); ctx.fillText('쓸모없음',96,262);
+  let y=380;
+  recapLines().forEach(([v,l]) => { ctx.fillStyle='#98A1AC'; ctx.font=font(400,34); ctx.fillText(l,80,y);
+    ctx.fillStyle='#ECEFF2'; ctx.font=font(800,52); ctx.fillText(v,W-80-ctx.measureText(v).width,y+4);
+    ctx.fillStyle='#323941'; ctx.fillRect(80,y+29,W-160,2); y+=86; });
+  ctx.fillStyle='#FFCF33'; ctx.font=font(800,38); ctx.fillText('상위 0.0%입니다. 근거는 없습니다.',80,H-120);
+  ctx.fillStyle='#98A1AC'; ctx.font=font(400,34); ctx.fillText('쓸모없음 다모아',80,H-64);
+}
+function recap(root){
+  redraw=null;
+  const year=new Date().getFullYear();
+  root.innerHTML = `<div class="page">${bar('올해의 쓸모없음')}
+    <div class="card grow"><div class="recapimg"><canvas id="recC" role="img" aria-label="${year}년의 쓸모없음 결산 카드"></canvas></div>
+      <button class="btn" id="shareBtn" type="button">카드 보내기</button>
+      <p class="small muted center">내 기록만 그림으로 만들어 내가 고른 곳으로 보냅니다. 어디에도 올라가지 않습니다.</p></div></div>`;
+  wireBack();
+  const c=$('#recC'); drawRecap(c);
+  primary = () => $('#shareBtn').click();
+  $('#shareBtn').onclick = () => c.toBlob(async blob => {
+    const name=`useless-${year}.png`;
+    try{
+      const file=new File([blob], name, {type:'image/png'});
+      if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], text:`${year}년의 쓸모없음. 쓸모는 없었습니다.`}); return; }
+    }catch(e){ if(e && e.name==='AbortError') return; }
+    // No share sheet (most desktop browsers): save the picture instead.
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 4000); toast('카드를 그림 파일로 저장했습니다.');
+  }, 'image/png');
 }
 
 /* ================= achievements ================= */
