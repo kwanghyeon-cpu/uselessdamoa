@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="돌멩이 키우기, 아무 일도 없는 버튼, 정확도 0% 운세까지. 쓸모없지만 자꾸 열게 되는 기능 8종 세트.">
+<meta name="description" content="돌멩이 키우기, 아무 일도 없는 버튼, 정확도 0% 운세까지. 쓸모없지만 자꾸 열게 되는 기능 10종 세트.">
 <meta property="og:title" content="쓸모없음 다모아">
-<meta property="og:description" content="돌멩이 키우기, 아무 일도 없는 버튼, 정확도 0% 운세까지. 쓸모없지만 자꾸 열게 되는 기능 8종 세트.">
+<meta property="og:description" content="돌멩이 키우기, 아무 일도 없는 버튼, 정확도 0% 운세까지. 쓸모없지만 자꾸 열게 되는 기능 10종 세트.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://kwanghyeon-cpu.github.io/uselessdamoa/">
 <meta property="og:image" content="https://kwanghyeon-cpu.github.io/uselessdamoa/og.png">
@@ -19,9 +19,9 @@
 </script>
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-  import { getFirestore, doc, collection, query, where, onSnapshot, setDoc, deleteDoc, getCountFromServer, increment, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  import { getFirestore, doc, getDoc, collection, query, where, onSnapshot, setDoc, deleteDoc, getCountFromServer, increment, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
   const app = initializeApp({"apiKey":"AIzaSyBs3l3QzvhPfrusgetIvL4YbmrgV05t3Qs","authDomain":"uselessdamoa.firebaseapp.com","projectId":"uselessdamoa","storageBucket":"uselessdamoa.firebasestorage.app","messagingSenderId":"351461403017","appId":"1:351461403017:web:82a3c4a26165b130fbd958"});
-  window.FB = { db: getFirestore(app), doc, collection, query, where, onSnapshot, setDoc, deleteDoc, getCountFromServer, increment, serverTimestamp, Timestamp };
+  window.FB = { db: getFirestore(app), doc, getDoc, collection, query, where, onSnapshot, setDoc, deleteDoc, getCountFromServer, increment, serverTimestamp, Timestamp };
   window.dispatchEvent(new Event('fb-ready'));
 </script>
 </head>
@@ -285,7 +285,7 @@ const Daily = {
     const ms=this.today(), c=this.count(ms.metric);
     if(!(ms.exact ? c===ms.target : c>=ms.target)) return;
     const s = store.get('mDoneDay','')===dateKey(Date.now()-864e5) ? store.get('mStreak',0)+1 : 1;
-    store.set('mDoneDay',dateKey()); store.set('mStreak',s); store.set('mBest',Math.max(s,store.get('mBest',0)));
+    store.set('mDoneDay',dateKey()); store.set('mStreak',s); recapNote('mBestY', s); store.set('mBest',Math.max(s,store.get('mBest',0)));
     toast(`오늘의 임무 완료. 보상은 없습니다. (연속 ${s}일)`); unlockIf(s>=7,'mission_7');
   },
 };
@@ -364,7 +364,8 @@ function firebaseShared(){
     async add(n){ const F=window.FB; while(n>0){ const k=Math.min(50,n); n-=k; sent+=k; const data={count:F.increment(k), at:F.serverTimestamp()};
       F.setDoc(F.doc(F.db,'daily',utcDay()), data, {merge:true}).catch(()=>{});
       await F.setDoc(ref('button'), data, {merge:true}); } },
-    watchToday(cb){ const F=window.FB; return F.onSnapshot(F.doc(F.db,'daily',utcDay()), s => cb(Number(s.get('count'))||0), ()=>{}); },
+    // Polled every 30 s instead of listened to: a listener costs a read for every press anywhere.
+    watchToday(cb){ const F=window.FB; const get=()=>F.getDoc(F.doc(F.db,'daily',utcDay())).then(s => cb(Number(s.get('count'))||0)).catch(()=>{}); get(); const iv=setInterval(get,30000); return () => clearInterval(iv); },
     liveJoin(){ const F=window.FB; liveRef=F.doc(F.collection(F.db,'live')); return F.setDoc(liveRef, {at:F.serverTimestamp()}); },
     liveBeat(){ const F=window.FB; return liveRef && F.setDoc(liveRef, {at:F.serverTimestamp()}); },
     liveLeave(){ const F=window.FB; const r=liveRef; liveRef=null; return r && F.deleteDoc(r); },
@@ -955,7 +956,7 @@ function nothing(root){
     let liveIv=null, beatIv=null;
     const showLive = () => Promise.resolve().then(()=>Shared.liveCount()).then(n => { const el=$('#nw'); if(el && n) el.textContent = n<=1 ? '지금은 당신 혼자 아무것도 안 하고 있습니다.' : `지금 전 세계에서 ${fmt(n)}명이 함께 아무것도 안 하고 있습니다.`; }).catch(()=>{});
     if(shared){ Promise.resolve().then(()=>Shared.liveJoin()).then(showLive).catch(()=>{});
-      liveIv=setInterval(showLive, 10000); beatIv=setInterval(()=>Promise.resolve().then(()=>Shared.liveBeat()).catch(()=>{}), 30000); }
+      liveIv=setInterval(showLive, 30000); beatIv=setInterval(()=>Promise.resolve().then(()=>Shared.liveBeat()).catch(()=>{}), 30000); }
     const end = reason => {
       clearInterval(iv); clearInterval(liveIv); clearInterval(beatIv); ov.remove(); try{ wl?.release(); }catch(e){}
       if(shared) Promise.resolve().then(()=>Shared.liveLeave()).catch(()=>{});
@@ -965,7 +966,7 @@ function nothing(root){
       if(nb){ best=secs; store.set('nothingBest',secs); }
       // Only a new world record is sent (the server refuses anything that doesn't beat it).
       if(shared && secs>0 && (world==null || secs>world)) Promise.resolve().then(()=>Shared.submitBest(secs)).catch(()=>{});
-      unlockIf(secs>=300,'nothing_5m'); unlockIf(secs>=3600,'nothing_1h'); Daily.max('nothing', secs);
+      unlockIf(secs>=300,'nothing_5m'); unlockIf(secs>=3600,'nothing_1h'); Daily.max('nothing', secs); recapNote('nothingBestY', secs);
       result=`${reason} ${fmtDur(secs*1000)} 동안 아무것도 안 했습니다.`+(nb?' 개인 최고 기록입니다.':'');
       if(alive && location.hash==='#nothing') render();
     };
@@ -1049,13 +1050,25 @@ function drawCactus(ctx,w,h,mm){
 
 /* ================= 10. year recap ================= */
 // Only the viewer's own numbers, drawn into an image they can save or send. Nothing is uploaded.
+// The card shows this year only: the first visit in a new year notes the all-time totals and the card subtracts them.
+// Records are kept per year where they're set. On the very first visit everything so far counts for this year.
+function recapTotals(){ const r=store.get('rock',null);
+  return {wasted, pets:r?r.pets:0, mine:store.get('mine',0), sighs:store.get('sighCount',0), clouds:store.get('clouds',[]).length, cm:m.total, ach:unlocked().size}; }
+function recapStart(){
+  const y=new Date().getFullYear(), was=store.get('recapYear',0); if(was===y) return;
+  if(!was){ store.set('nothingBestY'+y, store.get('nothingBest',0)); store.set('mBestY'+y, store.get('mBest',0)); store.set('recapBase',{}); }
+  else store.set('recapBase', recapTotals());
+  store.set('recapYear', y);
+}
+function recapNote(key, v){ const k=key+new Date().getFullYear(); if(v>store.get(k,0)) store.set(k,v); }
 function recapLines(){
-  const r=store.get('rock',null), km=m.total/100;
+  recapStart();
+  const y=new Date().getFullYear(), t=recapTotals(), base=store.get('recapBase',{}), yr=k=>Math.max(0,(t[k]||0)-(base[k]||0)), cm=yr('cm');
   return [
-    [fmtDur(wasted),'쓸모없이 보낸 시간'], [`${fmt(r?r.pets:0)}번`,'돌을 쓰다듬은 횟수'], [`${fmt(store.get('mine',0))}번`,'아무 일도 없는 버튼'],
-    [`${fmt(store.get('sighCount',0))}번`,'대신 쉰 한숨'], [`${store.get('clouds',[]).length}개`,'모은 구름'], [fmtDur(store.get('nothingBest',0)*1000),'아무것도 안 하기 최고 기록'],
-    [km>=1?km.toFixed(2)+'m':m.total.toFixed(1)+'cm', FINE?'마우스가 걸은 거리':'손가락이 걸은 거리'], [`${(store.get('cactusMm',0)/10).toFixed(1)}cm`,'선인장 키'],
-    [`${Daily.best()}일`,'임무 최장 연속'], [`${unlocked().size} / ${ACH.length}`,'쓸모없는 업적'],
+    [fmtDur(yr('wasted')),'쓸모없이 보낸 시간'], [`${fmt(yr('pets'))}번`,'돌을 쓰다듬은 횟수'], [`${fmt(yr('mine'))}번`,'아무 일도 없는 버튼'],
+    [`${fmt(yr('sighs'))}번`,'대신 쉰 한숨'], [`${yr('clouds')}개`,'모은 구름'], [fmtDur(store.get('nothingBestY'+y,0)*1000),'아무것도 안 하기 최고 기록'],
+    [cm>=100?(cm/100).toFixed(2)+'m':cm.toFixed(1)+'cm', FINE?'마우스가 걸은 거리':'손가락이 걸은 거리'], [`${(store.get('cactusMm',0)/10).toFixed(1)}cm`,'지금 선인장 키'],
+    [`${store.get('mBestY'+y,0)}일`,'임무 최장 연속'], [`${yr('ach')}개`,'올해 딴 업적'],
   ];
 }
 function drawRecap(c){
@@ -1106,6 +1119,7 @@ function achievements(root){
   wireBack();
 }
 
+recapStart();
 route();
 })();
 </script>
