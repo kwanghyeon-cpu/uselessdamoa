@@ -500,7 +500,7 @@ function rock(root){
   const days = Math.floor((now-s.born)/864e5), moss = Math.min(1,(now-s.born)/(30*864e5));
   unlockIf(days>=7,'rock_day_7');
   root.innerHTML = `<div class="page">${bar('돌멩이 키우기')}
-    <div class="card" style="flex:1.3">
+    <div class="card" style="flex:1.9">
       <div class="cv"><canvas id="rockC" aria-label="${esc(s.name)}라는 돌"></canvas></div>
       <p class="speech" id="speech">${esc(rockGreeting(s.name, days))}</p>
       <div class="stats"><div><b>D+${days}</b><span>함께한 날</span></div><div><b id="petN">${s.pets}</b><span>쓰다듬은 횟수</span></div><div><b>${(moss*100).toFixed(1)}%</b><span>이끼 덮임</span></div></div>
@@ -529,33 +529,71 @@ function rockGreeting(name, days){
   return {winter:`${name} 위에 눈이 쌓였습니다. 돌은 춥지 않습니다.`, spring:`${name} 옆에 꽃잎이 떨어졌습니다. 돌은 관심 없습니다.`,
     rainy:`${name}가 비를 맞고 있습니다. 원래 젖어도 됩니다.`, summer:`${name}가 뜨끈합니다. 돌은 원래 그렇습니다.`, autumn:`${name} 위에 낙엽이 내려앉았습니다.`}[seasonNow()];
 }
-function drawRock(ctx,w,h,seed,moss){
-  const r=rng(seed), k=Math.min(w/480,h/360);
+/* A smooth river pebble: light from the upper left, a darker underside, a very fine grain (no spots),
+   sometimes a pale quartz vein. Moss grows as one soft cushion on top over 30 days, not as scattered dots.
+   Seasons add a snow cap, petals, rain or a few real-looking leaves. Same drawing as the app (Rock.kt). */
+function hexRgb(c){ c=String(c).trim(); if(c[0]==='#'){ const n=parseInt(c.length===4?c.slice(1).replace(/./g,x=>x+x):c.slice(1),16); return [n>>16&255,n>>8&255,n&255]; } const m=c.match(/\d+/g); return m?m.slice(0,3).map(Number):[154,160,166]; }
+function mix(a,b,t,al=1){ const x=hexRgb(a), y=hexRgb(b); return `rgba(${x.map((v,i)=>Math.round(v+(y[i]-v)*t)).join(',')},${al})`; }
+function drawRock(ctx,w,h,seed,moss,season=seasonNow()){
+  const r=rng(seed), k=Math.min(w/480,h/300), cx=w/2, cy=h*0.55, TAU=Math.PI*2;
+  const stone=css('--stone')||'#9AA0A6', mossC=css('--moss')||'#5E8C4A';
   ctx.clearRect(0,0,w,h);
-  ctx.fillStyle='rgba(0,0,0,.12)'; ctx.beginPath(); ctx.ellipse(w/2,h*0.5+118*k,150*k,22*k,0,0,Math.PI*2); ctx.fill();
-  const N=14, pts=[];
-  for(let i=0;i<N;i++){ const a=i/N*Math.PI*2, rad=1+(r()-0.5)*0.22, lower=a>0&&a<Math.PI; pts.push([w/2+Math.cos(a)*150*k*rad, h*0.47+Math.sin(a)*(lower?95:110)*k*rad]); }
+  // soft contact shadow
+  ctx.save(); ctx.translate(cx,cy+92*k); ctx.scale(1,44/340);
+  ctx.fillStyle=radial(ctx,0,0,0,0,0,170*k,[[0,'rgba(0,0,0,.28)'],[1,'rgba(0,0,0,0)']]); ctx.beginPath(); ctx.arc(0,0,170*k,0,TAU); ctx.fill(); ctx.restore();
+  // outline: a flattened oval with a gentle, seeded wobble
+  const N=12, pts=[];
+  for(let i=0;i<N;i++){ const a=i/N*TAU, rad=1+(r()-0.5)*0.12, lower=a>0&&a<Math.PI; pts.push([cx+Math.cos(a)*160*k*rad, cy+Math.sin(a)*(lower?84:98)*k*rad]); }
   const mid=(p,q)=>[(p[0]+q[0])/2,(p[1]+q[1])/2];
-  ctx.beginPath(); const st=mid(pts[0],pts[1]); ctx.moveTo(st[0],st[1]);
-  for(let i=0;i<N;i++){ const q=pts[(i+1)%N], mm=mid(q,pts[(i+2)%N]); ctx.quadraticCurveTo(q[0],q[1],mm[0],mm[1]); }
-  ctx.closePath();
-  ctx.fillStyle=radial(ctx,w*0.42,h*0.34,10*k,w/2,h*0.47,200*k,[[0,'#D5D8DB'],[0.5,css('--stone')||'#9AA0A6'],[1,'#4E5359']]); ctx.fill();
-  ctx.save(); ctx.clip();
-  for(let i=0;i<60;i++) circle(ctx,r()*w,r()*h,(r()*4+1)*k,`rgba(0,0,0,${r()*0.12})`);
-  const mossC=css('--moss')||'#5E8C4A', n=Math.floor(moss*220)+4;
-  for(let i=0;i<n;i++){ ctx.globalAlpha=0.5+r()*0.4; circle(ctx,w/2+(r()-0.5)*300*k, h*0.47-100*k+r()*120*k*(0.4+moss),(r()*6+2)*k,mossC); }
-  ctx.globalAlpha=1;
-  const season=seasonNow(), top=Math.min(...pts.map(p=>p[1]));
-  // winter: a cap of snow on the top of the rock
-  if(season==='winter'){ ctx.fillStyle='rgba(255,255,255,.92)'; ctx.fillRect(0,top-4*k,w,34*k);
-    for(let i=0;i<14;i++) circle(ctx,w/2+(r()-0.5)*240*k,top+30*k,(8+r()*10)*k,'#fff'); }
+  const shape=new Path2D(); const st=mid(pts[0],pts[1]); shape.moveTo(st[0],st[1]);
+  for(let i=0;i<N;i++){ const q=pts[(i+1)%N], m=mid(q,pts[(i+2)%N]); shape.quadraticCurveTo(q[0],q[1],m[0],m[1]); }
+  shape.closePath();
+  const top=Math.min(...pts.map(p=>p[1])), bottom=Math.max(...pts.map(p=>p[1]));
+  ctx.fillStyle=linear(ctx,0,top,0,bottom,[[0,mix(stone,'#ffffff',0.30)],[0.5,stone],[1,mix(stone,'#000000',0.32)]]); ctx.fill(shape);
+  ctx.save(); ctx.clip(shape);
+  // fine grain: many tiny, faint light and dark specks; reads as stone, not as dirt
+  for(let i=0;i<260;i++){ const light=r()<0.5; circle(ctx,cx+(r()-0.5)*330*k, top+r()*(bottom-top), (0.5+r()*0.9)*k, light?`rgba(255,255,255,${0.035+r()*0.05})`:`rgba(0,0,0,${0.035+r()*0.05})`); }
+  // a pale quartz vein on some rocks
+  // (runs diagonally across the stone, thin and faint)
+  if(r()<0.6){ const x0=cx+(r()-0.5)*120*k; const v=new Path2D(); v.moveTo(x0-120*k,cy-110*k); v.bezierCurveTo(x0-50*k,cy-30*k,x0+10*k,cy+10*k,x0+90*k,cy+110*k);
+    ctx.lineCap='round'; ctx.strokeStyle='rgba(255,255,255,.07)'; ctx.lineWidth=7*k; ctx.stroke(v); ctx.strokeStyle='rgba(255,255,255,.16)'; ctx.lineWidth=2.4*k; ctx.stroke(v); }
+  // light from the upper left, shade underneath
+  ctx.fillStyle=radial(ctx,cx-60*k,top+34*k,0,cx-60*k,top+34*k,130*k,[[0,'rgba(255,255,255,.38)'],[1,'rgba(255,255,255,0)']]); ctx.fillRect(0,0,w,h);
+  ctx.fillStyle=radial(ctx,cx-20*k,cy-30*k,0,cx-20*k,cy-30*k,210*k,[[0,'rgba(0,0,0,0)'],[1,'rgba(0,0,0,.20)']]); ctx.fillRect(0,0,w,h);
+  // moss: one soft cushion on the top that spreads over 30 days
+  if(moss>0.02){
+    const mx=cx+(r()-0.5)*80*k, rx=(30+120*moss)*k, ry=(10+26*moss)*k, my=top+ry*0.6, deep=mix(mossC,'#000000',0.30), lightC=mix(mossC,'#E2EDB4',0.45);
+    // the cushion's outline: overlapping circles filled as one shape, so no bead-like bumps
+    const cushion=new Path2D(), n=8+Math.floor(10*moss);
+    for(let i=0;i<n;i++){ const a=r()*TAU, d=Math.sqrt(r()), x=mx+Math.cos(a)*rx*0.72*d, y=my+Math.sin(a)*ry*0.5*d, rad=ry*(0.7+r()*0.5); cushion.moveTo(x+rad,y); cushion.arc(x,y,rad,0,TAU); }
+    ctx.save(); ctx.translate(0,3*k); ctx.fillStyle='rgba(0,0,0,.18)'; ctx.fill(cushion); ctx.restore(); // a soft shadow under it
+    ctx.fillStyle=mossC; ctx.fill(cushion);
+    ctx.save(); ctx.clip(cushion);
+    // lit from above like the stone, darker at the base
+    ctx.fillStyle=linear(ctx,0,my-ry*1.2,0,my+ry*1.2,[[0,lightC],[0.5,mossC],[1,deep]]); ctx.fillRect(0,0,w,h);
+    // velvet: very fine, faint flecks
+    for(let i=0;i<160;i++){ const lt=r()<0.5; circle(ctx,mx+(r()-0.5)*rx*2.2, my+(r()-0.5)*ry*2.6, (0.5+r()*0.8)*k, lt?mix(lightC,lightC,0,0.35):mix(deep,deep,0,0.35)); }
+    ctx.restore();
+  }
+  // winter: a smooth cap of snow that follows the top of the rock
+  if(season==='winter'){ ctx.fillStyle=linear(ctx,0,top-30*k,0,top+34*k,[[0,'#ffffff'],[1,'#E6EEF5']]); ctx.beginPath(); ctx.ellipse(cx,top-3*k,150*k,37*k,0,0,TAU); ctx.fill(); }
   ctx.restore();
   // the season around the rock (fixed per rock, so the scene doesn't jump between visits)
   const sr=rng(seed^0x5EA5);
-  if(season==='winter') for(let i=0;i<40;i++) circle(ctx,sr()*w,sr()*h*0.8,(1.5+sr()*2.5)*k,'rgba(255,255,255,.85)');
-  if(season==='spring') for(let i=0;i<14;i++){ ctx.fillStyle='#F6B7C9'; ctx.beginPath(); ctx.ellipse(sr()*w,sr()*h*0.85,4.5*k,3*k,0,0,Math.PI*2); ctx.fill(); }
-  if(season==='rainy'){ ctx.strokeStyle='rgba(127,167,217,.7)'; ctx.lineWidth=2; for(let i=0;i<36;i++){ const x=sr()*w, y=sr()*h*0.8; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-4*k,y+16*k); ctx.stroke(); } }
-  if(season==='autumn') for(let i=0;i<7;i++){ ctx.fillStyle=['#D9822B','#C2452D','#E0B43A'][i%3]; ctx.beginPath(); ctx.ellipse(w/2+(sr()-0.5)*260*k, top+sr()*120*k, 8*k,5*k, sr()*Math.PI, 0,Math.PI*2); ctx.fill(); }
+  if(season==='winter') for(let i=0;i<28;i++) circle(ctx,sr()*w,sr()*h*0.85,(1.5+sr()*2.5)*k,`rgba(255,255,255,${0.55+sr()*0.35})`);
+  if(season==='spring') for(let i=0;i<6;i++) leaf(ctx,cx+(sr()-0.5)*420*k, i<2?top+8*k+sr()*20*k:cy+(60+sr()*40)*k, 18*k, sr()*360, '#F7C1D1','#E79AB2', false);
+  if(season==='rainy'){ ctx.strokeStyle='rgba(143,179,222,.55)'; ctx.lineWidth=1.6*k; for(let i=0;i<30;i++){ const x=sr()*w, y=sr()*h*0.8; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-4*k,y+16*k); ctx.stroke(); } }
+  if(season==='autumn'){ const cols=[['#D9822B','#A85A17'],['#C2452D','#8E2C1C'],['#E0B43A','#A9821F']], first=Math.floor(sr()*3);
+    [[cx-50*k,top+14*k],[cx+46*k,top+26*k],[cx+175*k,cy+88*k]].forEach(([x,y],i)=>{ const [f,rb]=cols[(first+i)%3]; leaf(ctx,x,y,(34+sr()*8)*k,-30+sr()*60+i*40,f,rb); }); }
+}
+/* A simple leaf or petal: two curves meeting at the tips, with a midrib for leaves. */
+function leaf(ctx,x,y,len,deg,fill,rib,vein=true){
+  ctx.save(); ctx.translate(x,y); ctx.rotate(deg*Math.PI/180);
+  const p=new Path2D(); p.moveTo(-len/2,0); p.quadraticCurveTo(-len*0.05,-len*0.42,len/2,0); p.quadraticCurveTo(-len*0.05,len*0.42,-len/2,0); p.closePath();
+  ctx.strokeStyle='rgba(0,0,0,.18)'; ctx.lineWidth=len*0.05; ctx.stroke(p);
+  ctx.fillStyle=linear(ctx,0,-len*0.3,0,len*0.3,[[0,mix(fill,'#ffffff',0.18)],[1,fill]]); ctx.fill(p);
+  if(vein){ ctx.strokeStyle=rib; ctx.lineWidth=len*0.045; ctx.beginPath(); ctx.moveTo(-len*0.62,0); ctx.lineTo(len*0.42,0); ctx.stroke(); }
+  ctx.restore();
 }
 
 /* ================= 2. button ================= */
