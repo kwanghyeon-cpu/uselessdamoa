@@ -221,12 +221,13 @@ function showNotices(){
   d.querySelector('button').onclick = () => d.remove();
   document.body.appendChild(d);
 }
-/* "함께 쓰면 좋은 앱": the developer's other apps in the same group. web/related.js is the bundled copy;
+/* "함께 쓰면 좋은 앱": the developer's other apps, this app's group first. web/related.js is the bundled copy;
    the public build (same origin as the shared list) refreshes it at most once a day. */
 const RELATED_SELF='uselessdamoa', RELATED_URL='https://kwanghyeon-cpu.github.io/related-apps.json';
 let related = window.RELATED || [];
 function relatedFrom(list){
-  const ids=[...new Set(list.groups.filter(g=>g.apps.includes(RELATED_SELF)).flatMap(g=>g.apps).filter(id=>id!==RELATED_SELF))];
+  // this app's groups first, then every other app
+  const ids=[...new Set([...list.groups.filter(g=>g.apps.includes(RELATED_SELF)).flatMap(g=>g.apps), ...Object.keys(list.apps)])].filter(id=>id!==RELATED_SELF);
   return ids.map(id=>{ const a=list.apps[id]; if(!a) return null;
     const url = a.public && a.package ? 'https://play.google.com/store/apps/details?id='+a.package : a.web;
     const old = (window.RELATED||[]).find(r=>r.id===id);
@@ -235,10 +236,10 @@ function relatedFrom(list){
 async function refreshRelated(){
   if(!window.USELESS_FIREBASE) return; // the Claude artifact can't reach other sites: keep the bundled copy
   try{
-    const c=store.get('related',null);
+    const c=store.get('related2',null);
     if(c && Date.now()-c.at<864e5){ related=c.apps; return; }
     const r=await fetch(RELATED_URL,{cache:'no-cache'}); if(!r.ok) return;
-    const apps=relatedFrom(await r.json()); store.set('related',{at:Date.now(),apps}); related=apps;
+    const apps=relatedFrom(await r.json()); store.set('related2',{at:Date.now(),apps}); related=apps;
   }catch(e){}
 }
 function relIcon(a,size){ return a.icon ? `<img src="${esc(a.icon)}" width="${size}" height="${size}" alt="">` : icon('useful',size); }
